@@ -10,11 +10,14 @@ import 'package:mspaa/screens/reports_screen.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Asegura que Flutter está listo
-  await initializeDateFormatting('es', null); // Carga el formato en español
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Asegura que Flutter está listo
+  await initializeDateFormatting('es', null); // ✅ Formateo de fecha
+  await SharedPreferences.getInstance(); // ✅ Inicializar SharedPreferences correctamente
+
   runApp(
     MultiProvider(
       providers: [
@@ -23,6 +26,12 @@ void main() async {
       child: const MyApp(),
     ),
   );
+}
+
+
+Future<String> getInitialRoute() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString("auth_token") != null ? '/home' : '/login';
 }
 
 final GoRouter _router = GoRouter(

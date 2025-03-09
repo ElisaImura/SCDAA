@@ -1,31 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:mspaa/services/api_service.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>(); // Llave para el formulario
+  final ApiService _apiService = ApiService();
+  final _formKey = GlobalKey<FormState>(); // ✅ Agregamos la validación del formulario
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      // Aquí iría la lógica real de autenticación
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Iniciando sesión...")),
+void _login() async {
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // ✅ Ejecutamos el login en un Future separado para evitar bloquear la UI
+    Future.microtask(() async {
+      bool success = await _apiService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
 
-      Future.delayed(const Duration(seconds: 1), () {
-        // ignore: use_build_context_synchronously
-        context.go('/home'); // Redirige a la pantalla principal
-      });
-    }
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (success) {
+          GoRouter.of(context).go('/home'); // ✅ Redirigir al Home después del login
+        } else {
+          setState(() {
+            _errorMessage = "Credenciales incorrectas.";
+          });
+        }
+      }
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Ingresa tu email";
-                    } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-                        .hasMatch(value)) {
-                      return "Email inválido";
                     }
                     return null;
                   },
@@ -73,20 +91,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Ingresa tu contraseña";
-                    } else if (value.length < 6) {
-                      return "Debe tener al menos 6 caracteres";
                     }
                     return null;
                   },
                 ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(_errorMessage!, style: TextStyle(color: Colors.red)),
+                ],
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: const Text("Ingresar"),
-                ),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: const Text("Ingresar"),
+                      ),
               ],
             ),
           ),

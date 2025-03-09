@@ -35,14 +35,13 @@ class ApiService {
     final response = await http.post(
       Uri.parse("$baseUrl/login"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email, "password": password}),
+      body: jsonEncode({"uss_email": email, "uss_clave": password}), // ✅ Campos correctos
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("auth_token", data["token"]); // ✅ Guardamos el token
-
       return true; // ✅ Login exitoso
     } else {
       return false; // ❌ Error en login
