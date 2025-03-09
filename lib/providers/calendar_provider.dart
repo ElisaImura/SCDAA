@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mspaa/services/api_service.dart';
 
 class CalendarProvider extends ChangeNotifier {
@@ -35,7 +35,9 @@ class CalendarProvider extends ChangeNotifier {
     notifyListeners(); // 🔹 Notificar a los widgets dependientes
 
   } catch (e) {
-    print("❌ Error al obtener actividades: $e");
+    if (kDebugMode) {
+      print("❌ Error al obtener actividades: $e");
+    }
     _isLoading = false;
     notifyListeners();
   }

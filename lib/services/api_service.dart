@@ -47,4 +47,25 @@ class ApiService {
       return false; // ❌ Error en login
     }
   }
+
+
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString("auth_token");
+
+    if (token != null) {
+      final response = await http.post(
+        Uri.parse("$baseUrl/logout"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token", // ✅ Enviar el token en el encabezado
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await prefs.remove("auth_token"); // ✅ Borrar el token en el dispositivo
+      }
+    }
+  }
 }
