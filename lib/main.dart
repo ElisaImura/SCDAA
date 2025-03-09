@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/screens/calendar_screen.dart';
 import 'package:mspaa/screens/config_screen.dart';
 import 'package:mspaa/screens/home_screen.dart';
@@ -8,12 +9,20 @@ import 'package:mspaa/screens/login_screen.dart';
 import 'package:mspaa/screens/reports_screen.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
+import 'package:provider/provider.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Asegura que Flutter está listo
   await initializeDateFormatting('es', null); // Carga el formato en español
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CalendarProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 final GoRouter _router = GoRouter(

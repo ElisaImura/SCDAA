@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mspaa/providers/calendar_provider.dart';
+import 'package:mspaa/screens/act_detail_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -14,12 +17,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   bool _mostrarTodas = false;
 
-  final Map<DateTime, List<String>> _events = {
-    DateTime.utc(2025, 2, 10): ["Siembra de soja", "Fertilización", "Inspección", "Riego", "Cosecha", "Otra tarea extra"],
-    DateTime.utc(2025, 2, 15): ["Riego programado"],
-    DateTime.utc(2025, 2, 20): ["Aplicación de fertilizante"],
-  };
-
   @override
   void initState() {
     super.initState();
@@ -29,87 +26,120 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final calendarProvider = Provider.of<CalendarProvider>(context);
+
     return Scaffold(
-      body: Column(
-        children: [
-          TableCalendar(
-            locale: 'es_ES',
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            calendarFormat: _calendarFormat,
-            eventLoader: (day) => _events[day] ?? [],
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            calendarStyle: CalendarStyle(
-              todayDecoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: const BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-              ),
-              markersAlignment: Alignment.bottomCenter,
-              markersMaxCount: 3,
+      body: calendarProvider.isLoading
+          ? const Center(child: CircularProgressIndicator()) // 🔹 Cargando datos
+          : Column(
+              children: [
+                TableCalendar(
+                  locale: 'es_ES',
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  calendarFormat: _calendarFormat,
+                  eventLoader: (day) {
+                    DateTime fechaNormalizada = DateTime.utc(day.year, day.month, day.day);
+                    return calendarProvider.events[fechaNormalizada] ?? [];
+                  },
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    markersAlignment: Alignment.bottomCenter,
+                    markersMaxCount: 3,
+                  ),
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(child: _buildEventList(calendarProvider)),
+              ],
             ),
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Expanded(child: _buildEventList()), // Se asegura que la lista ocupe el espacio disponible
-        ],
-      ),
     );
   }
 
-  Widget _buildEventList() {
-    final events = _events[_selectedDay] ?? [];
-    final mostrarEventos = _mostrarTodas ? events : events.take(3).toList();
+  Widget _buildEventList(CalendarProvider calendarProvider) {
+    final eventos = calendarProvider.events[_selectedDay] ?? [];
+    final mostrarEventos = _mostrarTodas ? eventos : eventos.take(3).toList();
 
     return SingleChildScrollView(
       child: Column(
         children: [
           ListView.builder(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // Evita conflictos con el ScrollView
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: mostrarEventos.length,
             itemBuilder: (context, index) {
+              final actividad = mostrarEventos[index];
+
+              // ✅ Obtener el nombre del tipo de actividad
+              String tipoActividad = actividad['tipo_actividad']?['tpAct_nombre'] ?? "Sin tipo";
+
               return ListTile(
                 leading: const Icon(Icons.event, color: Colors.green),
-                title: Text(mostrarEventos[index]),
+                title: Text(tipoActividad),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                onTap: () {
+                  List<dynamic> insumos = actividad['ciclo']?['insumos'] ?? [];
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ActivityDetailScreen(
+                        titulo: actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin título",
+                        fecha: actividad['act_fecha'] ?? "Fecha desconocida",
+                        estado: (actividad['act_estado'] == 1)
+                            ? "Pendiente"
+                            : (actividad['act_estado'] == 2)
+                                ? "En curso"
+                                : "Completado",
+                        descripcion: actividad['act_desc'] ?? "No hay detalles disponibles.",
+                        ciclo: (actividad['ciclo'] != null && actividad['ciclo']['ci_id'] != null)
+                            ? "Ciclo: ${actividad['ciclo']['ci_id']}"
+                            : "Sin ciclo",
+                        lote: (actividad['ciclo'] != null && actividad['ciclo']['lote'] != null)
+                            ? actividad['ciclo']['lote']['lot_nombre']
+                            : "Sin lote",
+                        insumos: insumos.map((insumo) {
+                          return {
+                            "ins_desc": insumo["ins_desc"],
+                            "ins_cant": insumo.containsKey("ins_cant") ? insumo["ins_cant"].toString() : "No especificado",
+                          };
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
-          if (events.length > 4) // Solo muestra el botón si hay más de 4 eventos
+          if (eventos.length > 3)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: TextButton(
                 onPressed: () {
                   setState(() {
                     _mostrarTodas = !_mostrarTodas;
-                  });
-
-                  // Espera a que el estado se actualice y luego hace scroll hasta el final
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Scrollable.ensureVisible(
-                      context,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
                   });
                 },
                 child: Text(_mostrarTodas ? "Mostrar menos" : "Mostrar más"),
@@ -119,4 +149,5 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
+
 }

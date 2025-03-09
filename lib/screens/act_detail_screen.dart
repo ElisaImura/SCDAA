@@ -5,6 +5,9 @@ class ActivityDetailScreen extends StatelessWidget {
   final String fecha;
   final String estado;
   final String descripcion;
+  final String ciclo;
+  final String lote;
+  final List<dynamic> insumos;
 
   const ActivityDetailScreen({
     super.key,
@@ -12,6 +15,9 @@ class ActivityDetailScreen extends StatelessWidget {
     required this.fecha,
     required this.estado,
     required this.descripcion,
+    required this.ciclo,
+    required this.lote,
+    required this.insumos,
   });
 
   @override
@@ -46,6 +52,22 @@ class ActivityDetailScreen extends StatelessWidget {
                 Text("Estado: $estado", style: const TextStyle(fontSize: 16)),
               ],
             ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.repeat, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text(ciclo, style: const TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.map, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text("Lote: $lote", style: const TextStyle(fontSize: 16)),
+              ],
+            ),
             const SizedBox(height: 20),
             const Text(
               "Descripción:",
@@ -56,6 +78,29 @@ class ActivityDetailScreen extends StatelessWidget {
               descripcion,
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
+            const SizedBox(height: 20),
+            const Text(
+              "Insumos:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            insumos.isNotEmpty
+              ? Column(
+                  children: insumos
+                      .map(
+                        (insumo) {
+                          return ListTile(
+                            leading: const Icon(Icons.inventory, color: Colors.blue),
+                            title: Text(insumo['ins_desc']),
+                            subtitle: Text(
+                              "Cantidad: ${insumo['ins_cant']}",
+                            ),
+                          );
+                        },
+                      )
+                      .toList(),
+                )
+              : const Text("No hay insumos registrados."),
             const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
