@@ -16,13 +16,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _focusedDay;
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  bool _mostrarTodas = false;
+  final bool _mostrarTodas = false;
 
   @override
   void initState() {
     super.initState();
     _focusedDay = DateTime.now();
-    _selectedDay = _focusedDay;
+    _selectedDay = DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day); // ✅ Normalizar la fecha a UTC
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final calendarProvider = Provider.of<CalendarProvider>(context, listen: false);
+      calendarProvider.fetchActividades().then((_) {
+        setState(() {
+          _selectedDay = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day); // ✅ Asegurar la fecha actual después de cargar los datos
+        });
+      });
+    });
   }
 
   @override
@@ -82,74 +91,71 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildEventList(CalendarProvider calendarProvider) {
-    final eventos = calendarProvider.events[_selectedDay] ?? [];
+    if (_selectedDay == null) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Center(child: Text("No hay actividades para este día.", style: TextStyle(fontSize: 16))),
+      );
+    }
+
+    // ✅ Normalizar la fecha seleccionada
+    DateTime fechaNormalizada = DateTime.utc(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+    final eventos = calendarProvider.events[fechaNormalizada] ?? [];
+
+    if (eventos.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Center(child: Text("No hay actividades para este día.", style: TextStyle(fontSize: 16))),
+      );
+    }
+
     final mostrarEventos = _mostrarTodas ? eventos : eventos.take(3).toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: mostrarEventos.length,
-            itemBuilder: (context, index) {
-              final actividad = mostrarEventos[index];
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: mostrarEventos.length,
+      itemBuilder: (context, index) {
+        final actividad = mostrarEventos[index];
 
-              // ✅ Obtener el nombre del tipo de actividad
-              String tipoActividad = actividad['tipo_actividad']?['tpAct_nombre'] ?? "Sin tipo";
+        String tipoActividad = actividad['tipo_actividad']?['tpAct_nombre'] ?? "Sin tipo";
 
-              return ListTile(
-                leading: const Icon(Icons.event, color: Colors.green),
-                title: Text(tipoActividad),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                onTap: () {
-                  List<dynamic> insumos = actividad['ciclo']?['insumos'] ?? [];
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ActivityDetailScreen(
-                        titulo: actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin título",
-                        fecha: actividad['act_fecha'] ?? "Fecha desconocida",
-                        estado: (actividad['act_estado'] == 1)
-                            ? "Pendiente"
-                            : (actividad['act_estado'] == 2)
-                                ? "En curso"
-                                : "Completado",
-                        descripcion: actividad['act_desc'] ?? "No hay detalles disponibles.",
-                        ciclo: (actividad['ciclo'] != null && actividad['ciclo']['ci_id'] != null)
-                            ? "Ciclo: ${actividad['ciclo']['ci_id']}"
-                            : "Sin ciclo",
-                        lote: (actividad['ciclo'] != null && actividad['ciclo']['lote'] != null)
-                            ? actividad['ciclo']['lote']['lot_nombre']
-                            : "Sin lote",
-                        insumos: insumos.map((insumo) {
-                          return {
-                            "ins_desc": insumo["ins_desc"],
-                            "ins_cant": insumo.containsKey("ins_cant") ? insumo["ins_cant"].toString() : "No especificado",
-                          };
-                        }).toList(),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-          if (eventos.length > 3)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    _mostrarTodas = !_mostrarTodas;
-                  });
-                },
-                child: Text(_mostrarTodas ? "Mostrar menos" : "Mostrar más"),
+        return ListTile(
+          leading: const Icon(Icons.event, color: Colors.green),
+          title: Text(tipoActividad),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          onTap: () {
+            List<dynamic> insumos = actividad['ciclo']?['insumos'] ?? [];
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ActivityDetailScreen(
+                  titulo: actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin título",
+                  fecha: actividad['act_fecha'] ?? "Fecha desconocida",
+                  estado: (actividad['act_estado'] == 1)
+                      ? "Pendiente"
+                      : (actividad['act_estado'] == 2)
+                          ? "En curso"
+                          : "Completado",
+                  descripcion: actividad['act_desc'] ?? "No hay detalles disponibles.",
+                  ciclo: (actividad['ciclo'] != null && actividad['ciclo']['ci_id'] != null)
+                      ? "Ciclo: ${actividad['ciclo']['ci_id']}"
+                      : "Sin ciclo",
+                  lote: (actividad['ciclo'] != null && actividad['ciclo']['lote'] != null)
+                      ? actividad['ciclo']['lote']['lot_nombre']
+                      : "Sin lote",
+                  insumos: insumos.map((insumo) {
+                    return {
+                      "ins_desc": insumo["ins_desc"],
+                      "ins_cant": insumo.containsKey("ins_cant") ? insumo["ins_cant"].toString() : "No especificado",
+                    };
+                  }).toList(),
+                ),
               ),
-            ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
-
 }

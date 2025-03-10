@@ -43,7 +43,7 @@ class Footer extends StatelessWidget {
             child: FloatingActionButton(
               heroTag: null, // 🔹 Desactiva la animación Hero
               onPressed: () {
-                // Acción del botón de agregar
+                context.go('/add-activity');
               },
               shape: const CircleBorder(),
               backgroundColor: Theme.of(context).colorScheme.secondary,

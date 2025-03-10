@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
-import 'package:mspaa/screens/calendar_screen.dart';
-import 'package:mspaa/screens/config_screen.dart';
-import 'package:mspaa/screens/home_screen.dart';
-import 'package:mspaa/screens/login_screen.dart';
-import 'package:mspaa/screens/reports_screen.dart';
-import 'package:mspaa/screens/welcome_screen.dart';
-import 'package:mspaa/widgets/main_layout.dart';
+import 'package:mspaa/routes/app_router.dart'; // ✅ Importar las rutas
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ Asegura que Flutter está listo
-  await initializeDateFormatting('es', null); // ✅ Formateo de fecha
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es', null);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
+        ChangeNotifierProvider(create: (_) => ActivityProvider()), // ✅ Agregar el ActivityProvider
       ],
       child: const MyApp(),
     ),
   );
 }
+
 
 /// 🔹 Función para verificar si hay un token guardado antes de iniciar la app
 Future<bool> isAuthenticated() async {
@@ -50,35 +47,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 56, 184, 96)),
           ),
-          routerConfig: GoRouter(
-            initialLocation: isLoggedIn ? '/home' : '/login', // ✅ Si está logueado va a `/home`
-            routes: [
-              GoRoute(
-                path: '/',
-                pageBuilder: (context, state) => NoTransitionPage(child: const WelcomeScreen()),
-              ),
-              GoRoute(
-                path: '/login',
-                pageBuilder: (context, state) => NoTransitionPage(child: const LoginScreen()),
-              ),
-              GoRoute(
-                path: '/home',
-                pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const HomeScreen())),
-              ),
-              GoRoute(
-                path: '/calendar',
-                pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const CalendarScreen())),
-              ),
-              GoRoute(
-                path: '/reports',
-                pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const ReportsScreen())),
-              ),
-              GoRoute(
-                path: '/config',
-                pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const ConfigScreen())),
-              ),
-            ],
-          ),
+          routerConfig: AppRouter.getRouter(isLoggedIn), // ✅ Usar el router separado
         );
       },
     );

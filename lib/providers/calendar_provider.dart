@@ -15,31 +15,30 @@ class CalendarProvider extends ChangeNotifier {
   }
 
   Future<void> fetchActividades() async {
-  try {
-    List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+    try {
+      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+      Map<DateTime, List<Map<String, dynamic>>> eventos = {};
 
-    Map<DateTime, List<Map<String, dynamic>>> eventos = {};
+      for (var actividad in actividades) {
+        DateTime fecha = DateTime.parse(actividad['act_fecha']);
+        DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
 
-    for (var actividad in actividades) {
-      DateTime fecha = DateTime.parse(actividad['act_fecha']);
-      DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
-
-      if (!eventos.containsKey(fechaNormalizada)) {
-        eventos[fechaNormalizada] = [];
+        if (!eventos.containsKey(fechaNormalizada)) {
+          eventos[fechaNormalizada] = [];
+        }
+        eventos[fechaNormalizada]!.add(actividad);
       }
-      eventos[fechaNormalizada]!.add(actividad);
-    }
 
-    _events = eventos;
-    _isLoading = false;
-    notifyListeners(); // 🔹 Notificar a los widgets dependientes
+      _events = eventos;
+      _isLoading = false;
+      notifyListeners(); // 🔹 Notificar a los widgets dependientes
 
-  } catch (e) {
-    if (kDebugMode) {
-      print("❌ Error al obtener actividades: $e");
+    } catch (e) {
+      if (kDebugMode) {
+        print("❌ Error al obtener actividades: $e");
+      }
+      _isLoading = false;
+      notifyListeners();
     }
-    _isLoading = false;
-    notifyListeners();
   }
-}
 }
