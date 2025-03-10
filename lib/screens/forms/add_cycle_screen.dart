@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +40,8 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     // Seleccionar Tipo de Cultivo
                     DropdownButtonFormField<String>(
                       value: _selectedTipoCultivo,
-                      decoration: const InputDecoration(labelText: "Tipo de Cultivo", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: "Tipo de Cultivo", border: OutlineInputBorder()),
                       items: activityProvider.tiposCultivos.map((cultivo) {
                         return DropdownMenuItem(
                           value: cultivo["tpCul_id"]?.toString() ?? "",
@@ -138,19 +140,49 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
+                          if (kDebugMode) {
+                            print("User ${await activityProvider.getLoggedUserId()}");
+                          }
                           if (_formKey.currentState!.validate() &&
                               _selectedTipoCultivo != null &&
-                              _selectedVariedad != null &&
+                              (_selectedVariedad != null || _mostrarNuevaVariedad) &&
                               _selectedLote != null) {
-                            bool success = await activityProvider.addCiclo({
+
+                            // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
+                            int? variedadId;
+                            if (_mostrarNuevaVariedad) {
+                              print("Intentando guardar");
+                              // Guardar la nueva variedad y obtener su ID
+                              variedadId = await activityProvider.addVariedad(
+                                _variedadController.text,
+                                _selectedTipoCultivo!
+                              );
+                            } else {
+                              // Si no es una nueva variedad, usar la seleccionada
+                              variedadId = int.parse(_selectedVariedad!);
+                            }
+
+                            print(variedadId);
+
+                            // Verifica que se haya obtenido un ID de variedad válido
+                            if (variedadId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Error al obtener el ID de la variedad"))
+                              );
+                              return;
+                            }
+
+                            // Datos que se enviarán al backend
+                            Map<String, dynamic> cicloData = {
                               "tpCult_id": int.parse(_selectedTipoCultivo!),
-                              "var_id": _mostrarNuevaVariedad
-                                  ? await activityProvider.addVariedad(_variedadController.text, _selectedTipoCultivo!)
-                                  : int.parse(_selectedVariedad!),
+                              "tpVar_id": variedadId,
                               "lot_id": int.parse(_selectedLote!),
                               "ci_fechaini": DateFormat("yyyy-MM-dd").format(_selectedDate),
-                              "uss_id": await activityProvider.getLoggedUserId(),
-                            });
+                              "uss_id": await activityProvider.getLoggedUserId(), // Verificar si el valor de `uss_id` no es null
+                            };
+
+                            // Llamar a la función addCiclo
+                            bool success = await activityProvider.addCiclo(cicloData);
 
                             if (success) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +190,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               Navigator.pop(context);
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Error al guardar el ciclo")));
+                                  const SnackBar(content: Text("Error al guardar el ciclo. Por favor, inténtelo de nuevo.")));
                             }
                           }
                         },

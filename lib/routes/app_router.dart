@@ -12,7 +12,7 @@ import 'package:mspaa/widgets/main_layout.dart';
 class AppRouter {
   static GoRouter getRouter(bool isLoggedIn) {
     return GoRouter(
-      initialLocation: isLoggedIn ? '/home' : '/login', // ✅ Redirige según autenticación
+      initialLocation: isLoggedIn ? '/home' : '/',  // Redirige según autenticación
       routes: [
         GoRoute(
           path: '/',

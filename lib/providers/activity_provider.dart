@@ -7,37 +7,50 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _ciclos = [];
   List<Map<String, dynamic>> _tiposActividades = [];
   List<Map<String, dynamic>> _tiposCultivos = [];
-  List<Map<String, dynamic>> _variedades = []; // ✅ Separamos variedades correctamente
+  List<Map<String, dynamic>> _variedades = [];
   List<Map<String, dynamic>> _lotes = [];
+  
   bool isLoading = true;
+  bool isLoadingVariedades = false;
 
   List<Map<String, dynamic>> get ciclos => _ciclos;
   List<Map<String, dynamic>> get tiposActividades => _tiposActividades;
   List<Map<String, dynamic>> get tiposCultivos => _tiposCultivos;
-  List<Map<String, dynamic>> get variedades => _variedades; // ✅ Ahora usamos esta lista
+  List<Map<String, dynamic>> get variedades => _variedades;
   List<Map<String, dynamic>> get lotes => _lotes;
 
   ActivityProvider() {
-    fetchDropdownData();
+    _initData();
   }
 
-  // 🔹 Obtener ciclos activos y tipos de actividades desde la API
-  Future<void> fetchDropdownData() async {
+  // 🔹 Carga los datos iniciales dividiendo en funciones
+  Future<void> _initData() async {
+    await _fetchCiclosYActividades();  // Carga ciclos y tipos de actividades
+    _fetchCultivosYLotes();            // Carga cultivos y lotes en segundo plano
+  }
+
+  /// 🔹 Cargar ciclos y tipos de actividades
+  Future<void> _fetchCiclosYActividades() async {
     try {
       _ciclos = await _apiService.fetchCiclos();
       _tiposActividades = await _apiService.fetchTiposActividades();
-      _tiposCultivos = await _apiService.fetchTiposCultivos();
-      _variedades = []; // ✅ Limpiamos variedades al inicio
-      _lotes = await _apiService.fetchLotes();
-
       isLoading = false;
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) {
-        print("❌ Error en fetchDropdownData(): $e");
-      }
+      if (kDebugMode) print("❌ Error en _fetchCiclosYActividades(): $e");
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// 🔹 Cargar tipos de cultivos y lotes en segundo plano
+  Future<void> _fetchCultivosYLotes() async {
+    try {
+      _tiposCultivos = await _apiService.fetchTiposCultivos();
+      _lotes = await _apiService.fetchLotes();
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error en _fetchCultivosYLotes(): $e");
     }
   }
 
@@ -50,32 +63,25 @@ class ActivityProvider extends ChangeNotifier {
     }
 
     try {
+      isLoadingVariedades = true;
+      notifyListeners();
+
       int cultivoIdInt = int.tryParse(cultivoId) ?? 0;
-      
-      if (cultivoIdInt == 0) {
-        if (kDebugMode) {
-          print("❌ Error: ID de cultivo inválido");
-        }
-        return;
-      }
+      if (cultivoIdInt == 0) return;
 
-      _variedades = await _apiService.fetchVariedades(cultivoIdInt); // ✅ Ahora sí manda el ID correcto
-
+      _variedades = await _apiService.fetchVariedades(cultivoIdInt);
+      isLoadingVariedades = false;
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) {
-        print("❌ Error en getVariedadesByCultivo(): $e");
-      }
+      isLoadingVariedades = false;
+      if (kDebugMode) print("❌ Error en getVariedadesByCultivo(): $e");
     }
   }
 
   /// 🔹 Agregar un nuevo ciclo
   Future<bool> addCiclo(Map<String, dynamic> cicloData) async {
     bool success = await _apiService.addCiclo(cicloData);
-    if (success) {
-      fetchDropdownData();
-      notifyListeners();
-    }
+    if (success) await _fetchCiclosYActividades(); // ✅ Solo recarga ciclos y actividades
     return success;
   }
 
@@ -97,10 +103,7 @@ class ActivityProvider extends ChangeNotifier {
   /// 🔹 Agregar una nueva actividad
   Future<bool> addActivity(Map<String, dynamic> activityData) async {
     bool success = await _apiService.addActivity(activityData);
-    if (success) {
-      fetchDropdownData(); // ✅ Recargar datos después de agregar actividad
-      notifyListeners();
-    }
+    if (success) await _fetchCiclosYActividades(); // ✅ Solo recarga ciclos y actividades
     return success;
   }
 }

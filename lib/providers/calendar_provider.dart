@@ -15,30 +15,29 @@ class CalendarProvider extends ChangeNotifier {
   }
 
   Future<void> fetchActividades() async {
+    _isLoading = true; // ✅ Establecer el estado de carga antes de la solicitud
+    notifyListeners(); // ✅ Notificar a los widgets solo una vez al comenzar
+
     try {
-      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
-      Map<DateTime, List<Map<String, dynamic>>> eventos = {};
+      final actividades = await _apiService.fetchActividades();
+      final Map<DateTime, List<Map<String, dynamic>>> eventos = {};
 
       for (var actividad in actividades) {
-        DateTime fecha = DateTime.parse(actividad['act_fecha']);
-        DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
+        final DateTime fecha = DateTime.parse(actividad['act_fecha']);
+        final DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
 
-        if (!eventos.containsKey(fechaNormalizada)) {
-          eventos[fechaNormalizada] = [];
-        }
-        eventos[fechaNormalizada]!.add(actividad);
+        eventos.putIfAbsent(fechaNormalizada, () => []).add(actividad); // ✅ Forma más limpia de agregar eventos
       }
 
       _events = eventos;
-      _isLoading = false;
-      notifyListeners(); // 🔹 Notificar a los widgets dependientes
-
-    } catch (e) {
+    } catch (e, stacktrace) {
       if (kDebugMode) {
         print("❌ Error al obtener actividades: $e");
+        print("🔍 Stacktrace: $stacktrace"); // ✅ Mostrar stacktrace para mejor depuración
       }
+    } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListeners(); // ✅ Notificar solo al final, una vez
     }
   }
 }
