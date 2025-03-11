@@ -27,7 +27,7 @@ class ActivityDetailScreen extends StatelessWidget {
         title: const Text("Detalles de la Actividad"),
         backgroundColor: Colors.green,
       ),
-      body: Padding(
+      body: SingleChildScrollView( // Añadimos SingleChildScrollView aquí
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,22 +86,18 @@ class ActivityDetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             insumos.isNotEmpty
               ? Column(
-                  children: insumos
-                      .map(
-                        (insumo) {
-                          return ListTile(
-                            leading: const Icon(Icons.inventory, color: Colors.blue),
-                            title: Text(insumo['ins_desc']),
-                            subtitle: Text(
-                              "Cantidad: ${insumo['ins_cant']}",
-                            ),
-                          );
-                        },
-                      )
-                      .toList(),
+                  children: insumos.toSet().toList().map((insumo) { // Usamos `toSet` para eliminar duplicados
+                    return ListTile(
+                      leading: const Icon(Icons.inventory, color: Colors.blue),
+                      title: Text(insumo['ins_desc']),
+                      subtitle: Text(
+                        "Cantidad: ${insumo['ins_cant']}",
+                      ),
+                    );
+                  }).toList(),
                 )
               : const Text("No hay insumos registrados."),
-            const Spacer(),
+            const SizedBox(height: 20), // Espacio entre los insumos y los botones
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

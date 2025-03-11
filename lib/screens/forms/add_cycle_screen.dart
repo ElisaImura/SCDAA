@@ -151,7 +151,6 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                             // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
                             int? variedadId;
                             if (_mostrarNuevaVariedad) {
-                              print("Intentando guardar");
                               // Guardar la nueva variedad y obtener su ID
                               variedadId = await activityProvider.addVariedad(
                                 _variedadController.text,
@@ -161,8 +160,6 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               // Si no es una nueva variedad, usar la seleccionada
                               variedadId = int.parse(_selectedVariedad!);
                             }
-
-                            print(variedadId);
 
                             // Verifica que se haya obtenido un ID de variedad válido
                             if (variedadId == null) {

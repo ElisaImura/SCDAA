@@ -39,7 +39,7 @@ class Footer extends StatelessWidget {
 
           // Botón central flotante
           Positioned(
-            top: -20, // Ajuste para que sobresalga
+            top: -15, // Ajuste para que sobresalga
             child: FloatingActionButton(
               heroTag: null, // 🔹 Desactiva la animación Hero
               onPressed: () {

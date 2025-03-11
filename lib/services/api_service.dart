@@ -12,7 +12,9 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("auth_token");
     if (token == null || token.isEmpty) {
-      print("No hay token almacenado o el token está vacío.");
+      if (kDebugMode) {
+        print("No hay token almacenado o el token está vacío.");
+      }
       return null;
     }
     return token;
@@ -40,8 +42,6 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print(data);  // Verificar si los datos son correctos
-      print("User ID recibido: ${data['user']['uss_id']}");
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("auth_token", data["token"]);  // Guardar el token
@@ -49,12 +49,16 @@ class ApiService {
       if (data["user"] != null && data["user"]["uss_id"] != null) {
         await prefs.setInt("uss_id", data["user"]["uss_id"]); // Guardar el ID del usuario
       } else {
-        print("Error: El uss_id es null.");
+        if (kDebugMode) {
+          print("Error: El uss_id es null.");
+        }
       }
       return true;  // Login exitoso
     } else {
       // Return false if the response status code is not 200
-      print("Error: Login failed with status code ${response.statusCode}");
+      if (kDebugMode) {
+        print("Error: Login failed with status code ${response.statusCode}");
+      }
       return false;
     }
   }
@@ -130,17 +134,21 @@ class ApiService {
   }
 
   /// 🔹 Obtener los insumos
-  Future<List<Map<String, dynamic>>> fetchInsumos() async {
-    final String? token = await _getToken();
+  Future<List<Map<String, dynamic>>> fetchInsumos(String token) async {
     final response = await http.get(
       Uri.parse("$baseUrl/insumos"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
+        "Authorization": "Bearer $token", // Autenticación con el token
       },
     );
 
-    return _handleResponse(response).cast<Map<String, dynamic>>();
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>(); // Convertimos a lista de mapas
+    } else {
+      throw Exception("Error al cargar insumos");
+    }
   }
 
   /// 🔹 Agregar una nueva actividad a la API
@@ -220,7 +228,6 @@ Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
     try {
       final String? token = await _getToken();
       if (token == null) {
-        print("No token available.");
         return false; // No se puede continuar sin un token
       }
 
@@ -228,14 +235,11 @@ Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
       final prefs = await SharedPreferences.getInstance();
       final int? userId = prefs.getInt("uss_id");
       if (userId == null) {
-        print("No user ID found.");
         return false; // Si no hay un user ID, no se puede proceder
       }
 
       // Añadir el uss_id al cicloData antes de enviarlo
       cicloData["uss_id"] = userId; 
-
-      print("Datos enviados: $cicloData");
 
       final response = await http.post(
         Uri.parse("$baseUrl/ciclos"),
@@ -273,9 +277,6 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     "tpVar_nombre": nombre,
   });
 
-  // Imprime el cuerpo de la solicitud antes de enviarlo
-  print("Cuerpo de la solicitud: $bodyData");
-
   final response = await http.post(
     Uri.parse("$baseUrl/tipos/variedad"),
     headers: {
@@ -285,16 +286,9 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     body: bodyData,
   );
 
-  // Imprimir el código de estado y el cuerpo de la respuesta
-  print("Código de estado: ${response.statusCode}");
-  print("Cuerpo de la respuesta: ${response.body}");
-
   if (response.statusCode == 201) {
     final data = jsonDecode(response.body);
-    print("Respuesta de la API: $data");
     return data["tpVar_id"]; // Retorna el ID de la nueva variedad
-  } else {
-    print("Error al crear la variedad");
   }
   return null;
 }
@@ -303,8 +297,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
   /// 🔹 Obtener el ID del usuario autenticado
   Future<int?> getLoggedUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    int? userId = prefs.getInt("uss_id");  // Cambia la clave de "user_id" a "uss_id"
-    print("User ID: $userId"); // Verificar si el ID es null o un valor válido
+    int? userId = prefs.getInt("uss_id");
     return userId;
   }
 

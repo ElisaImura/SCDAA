@@ -26,7 +26,13 @@ class CalendarProvider extends ChangeNotifier {
         final DateTime fecha = DateTime.parse(actividad['act_fecha']);
         final DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
 
-        eventos.putIfAbsent(fechaNormalizada, () => []).add(actividad); // ✅ Forma más limpia de agregar eventos
+        // Asegurarnos de que la lista existe para la fecha, y si no, inicializarla.
+        if (eventos[fechaNormalizada] == null) {
+          eventos[fechaNormalizada] = [];
+        }
+        
+        // Ahora agregamos la actividad sin preocuparse por el valor nulo
+        eventos[fechaNormalizada]!.add(actividad);
       }
 
       _events = eventos;

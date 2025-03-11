@@ -9,7 +9,8 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _tiposCultivos = [];
   List<Map<String, dynamic>> _variedades = [];
   List<Map<String, dynamic>> _lotes = [];
-  
+  List<Map<String, dynamic>> _insumos = [];
+
   bool isLoading = true;
   bool isLoadingVariedades = false;
 
@@ -18,6 +19,7 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get tiposCultivos => _tiposCultivos;
   List<Map<String, dynamic>> get variedades => _variedades;
   List<Map<String, dynamic>> get lotes => _lotes;
+  List<Map<String, dynamic>> get insumos => _insumos;
 
   ActivityProvider() {
     _initData();
@@ -47,10 +49,20 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> _fetchCultivosYLotes() async {
     try {
       _tiposCultivos = await _apiService.fetchTiposCultivos();
-      _lotes = await _apiService.fetchLotes();
+      await fetchLotes(); // Asegurarse de que los lotes estén cargados
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print("❌ Error en _fetchCultivosYLotes(): $e");
+    }
+  }
+
+  /// 🔹 Obtener los lotes desde el ApiService
+  Future<void> fetchLotes() async {
+    try {
+      _lotes = await _apiService.fetchLotes(); // Llamada al ApiService para obtener los lotes
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener los lotes: $e");
     }
   }
 
@@ -105,5 +117,24 @@ class ActivityProvider extends ChangeNotifier {
     bool success = await _apiService.addActivity(activityData);
     if (success) await _fetchCiclosYActividades(); // ✅ Solo recarga ciclos y actividades
     return success;
+  }
+
+  /// 🔹 Obtener Insumos
+  Future<void> fetchInsumos(String token) async {
+    isLoading = true;
+    notifyListeners(); // Notificar que estamos cargando
+
+    try {
+      final fetchedInsumos = await _apiService.fetchInsumos(token); // Llamada a ApiService
+      _insumos = fetchedInsumos; // Almacenamos los insumos
+    } catch (error) {
+      _insumos = []; // Si hay error, dejamos la lista vacía
+      if (kDebugMode) {
+        print("Error al obtener insumos: $error");
+      }
+    } finally {
+      isLoading = false;
+      notifyListeners(); // Notificar que terminó la carga
+    }
   }
 }
