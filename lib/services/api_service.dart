@@ -331,7 +331,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     final String? token = await _getToken();
 
     final response = await http.get(
-      Uri.parse("$baseUrl/ciclos?lot_id=$lotId"),  // Filtra por el ID del lote
+      Uri.parse("$baseUrl/ciclos/lote/$lotId"),  // Filtra por el ID del lote
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -342,9 +342,75 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       List<dynamic> data = json.decode(response.body);
 
       // Verificar si hay algún ciclo activo (sin `ci_fechafin`)
-      return data.any((ciclo) => ciclo['ci_fechafin'] == null);
+      return data.isNotEmpty;  // Si hay ciclos activos, devuelve true
+    } else if (response.statusCode == 404) {
+      // Si no hay ciclos activos, devuelve false
+      return false;
     } else {
       throw Exception("Error al verificar ciclos activos");
     }
   }
+
+  /// 🔹 Obtener los ciclos activos (sin `ci_fechafin`)
+  Future<List<Map<String, dynamic>>> fetchCiclosActivos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/ciclos"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    List<dynamic> data = _handleResponse(response);
+    // Filtramos los ciclos para obtener solo aquellos que no tienen ci_fechafin
+    List<Map<String, dynamic>> ciclosActivos = data
+        .where((ciclo) => ciclo["ci_fechafin"] == null)
+        .toList()
+        .cast<Map<String, dynamic>>();
+    
+    return ciclosActivos;
+  }
+
+  /// 🔹 Obtener las últimas 3 actividades recientes, ordenadas por fecha
+  Future<List<Map<String, dynamic>>> fetchActividadesRecientes() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/actividades"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    List<dynamic> data = _handleResponse(response);
+
+    // Ordenar actividades por fecha (de más reciente a más antigua)
+    data.sort((a, b) => DateTime.parse(b['act_fecha']).compareTo(DateTime.parse(a['act_fecha'])));
+
+    // Tomamos las 3 primeras actividades
+    return data.take(3).toList().cast<Map<String, dynamic>>();
+  }
+
+  /// 🔹 Obtener las próximas tareas (actividades con fecha de inicio futura)
+  Future<List<Map<String, dynamic>>> fetchProximasTareas() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/actividades"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    List<dynamic> data = _handleResponse(response);
+
+    // Filtrar actividades con fecha de inicio futura
+    DateTime now = DateTime.now();
+    return data.where((actividad) {
+      DateTime fechaInicio = DateTime.parse(actividad['ci_fechaini']);
+      return fechaInicio.isAfter(now);
+    }).toList().cast<Map<String, dynamic>>();
+  }
+
 }

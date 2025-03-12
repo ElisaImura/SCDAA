@@ -20,8 +20,10 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
   String? _selectedLote;
   bool _mostrarNuevaVariedad = false;
   bool _mostrarNuevoLote = false; // Flag para el nuevo lote
+  String? cicloNombre; // Nueva variable para el nombre del ciclo
   final TextEditingController _variedadController = TextEditingController();
   final TextEditingController _loteController = TextEditingController(); // Controlador para el nuevo lote
+  final TextEditingController _cicloNombreController = TextEditingController(); // Controlador para el nombre del ciclo
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,40 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Seleccionar Fecha de Inicio del Ciclo
+                    ListTile(
+                      title: Text("Fecha de Inicio: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            _selectedDate = pickedDate;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Campo para el nombre del ciclo
+                    TextFormField(
+                      controller: _cicloNombreController,
+                      decoration: const InputDecoration(
+                          labelText: "Nombre del nuevo ciclo", border: OutlineInputBorder()),
+                      validator: (value) => value!.isEmpty ? "Este campo es obligatorio" : null,
+                      onChanged: (value) {
+                        setState(() {
+                          cicloNombre = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 15),
+
                     // Seleccionar Tipo de Cultivo
                     DropdownButtonFormField<String>(
                       value: _selectedTipoCultivo,
@@ -132,26 +168,6 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                       ),
                     if (_mostrarNuevoLote) const SizedBox(height: 15),
 
-                    // Seleccionar Fecha de Inicio del Ciclo
-                    ListTile(
-                      title: Text("Fecha de Inicio: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            _selectedDate = pickedDate;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 15),
-
                     // Botón Guardar
                     SizedBox(
                       width: double.infinity,
@@ -178,9 +194,9 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                                   const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
                                 );
                                 return;
+                              } else {
+                                loteId = int.parse(_selectedLote!);
                               }
-                              // Si no es un nuevo lote, usar el seleccionado
-                              loteId = int.parse(_selectedLote!);
                             }
 
                             // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
@@ -211,6 +227,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               "lot_id": loteId,
                               "ci_fechaini": DateFormat("yyyy-MM-dd").format(_selectedDate),
                               "uss_id": await activityProvider.getLoggedUserId(),
+                              "ci_nombre": cicloNombre ?? "", // Usamos el nombre del ciclo
                             };
 
                             // Llamar a la función addCiclo

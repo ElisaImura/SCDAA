@@ -10,6 +10,9 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _variedades = [];
   List<Map<String, dynamic>> _lotes = [];
   List<Map<String, dynamic>> _insumos = [];
+  List<Map<String, dynamic>> _actividadesRecientes = [];
+  List<Map<String, dynamic>> _tareas = [];
+  List<Map<String, dynamic>> _ciclosActivos = [];
 
   bool isLoading = true;
   bool isLoadingVariedades = false;
@@ -20,6 +23,9 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get variedades => _variedades;
   List<Map<String, dynamic>> get lotes => _lotes;
   List<Map<String, dynamic>> get insumos => _insumos;
+  List<Map<String, dynamic>> get actividadesRecientes => _actividadesRecientes;
+  List<Map<String, dynamic>> get tareas => _tareas;
+  List<Map<String, dynamic>> get ciclosActivos => _ciclosActivos;
 
   ActivityProvider() {
     _initData();
@@ -151,6 +157,38 @@ class ActivityProvider extends ChangeNotifier {
   /// 🔹 Verificar si el lote tiene un ciclo activo
   Future<bool> checkActiveCycle(int lotId) async {
     return await _apiService.hasActiveCycle(lotId); // Llamamos al método del ApiService
+  }
+
+  // 🔹 Cargar los ciclos activos
+  Future<void> fetchCiclosActivos() async {
+    try {
+      _ciclosActivos = await _apiService.fetchCiclosActivos(); // Llamada al ApiService para obtener los ciclos activos
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener ciclos activos: $e");
+    }
+  }
+
+  /// 🔹 Cargar las últimas 3 actividades recientes
+  Future<void> fetchActividadesRecientes() async {
+    try {
+      _actividadesRecientes = await _apiService.fetchActividadesRecientes(); // Llamada al ApiService para obtener las actividades recientes
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener actividades recientes: $e");
+    }
+  }
+
+  /// 🔹 Cargar las próximas tareas (actividades con fecha futura)
+  Future<void> fetchTareas() async {
+    try {
+      // Supongamos que actividades es una lista de mapas con datos sobre tareas
+      _tareas = await _apiService.fetchActividadesRecientes(); // O la función correspondiente para obtener tareas
+
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener tareas: $e");
+    }
   }
 
 }

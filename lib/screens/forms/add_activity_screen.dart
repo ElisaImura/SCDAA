@@ -150,7 +150,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               : 'Desconocido';
           return DropdownMenuItem(
             value: ciclo["ci_id"].toString(),
-            child: Text("Ciclo ${ciclo["ci_id"]} ($loteName)"),
+            child: Text("${ciclo['ci_nombre']} ($loteName)"), // Cambiado de ci_id a ci_nombre
           );
         }),
         const DropdownMenuItem(value: "nuevo", child: Text("➕ Crear nuevo ciclo")),
