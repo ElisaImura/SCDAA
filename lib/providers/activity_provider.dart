@@ -220,4 +220,21 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  // Función para agregar un nuevo insumo y obtener los datos (incluyendo IDs generados)
+  Future<List<Map<String, dynamic>>> addInsumoNuevo(List<Map<String, dynamic>> insumos) async {
+    try {
+      // Llamamos al ApiService para agregar los insumos y recuperar los datos guardados
+      List<Map<String, dynamic>> insumosGuardados = await _apiService.addInsumoNuevo(insumos);
+
+      // Verificamos si la respuesta no está vacía y la retornamos
+      if (insumosGuardados.isNotEmpty) {
+        return insumosGuardados;
+      } else {
+        throw Exception("Error al guardar los insumos nuevos");
+      }
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al agregar insumo nuevo en ActivityProvider: $e");
+      return [];
+    }
+  }
 }

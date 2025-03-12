@@ -393,4 +393,44 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     }).toList().cast<Map<String, dynamic>>();
   }
 
+  // Función para agregar un nuevo insumo (uno por uno) y devolver los insumos con sus IDs generados
+  Future<List<Map<String, dynamic>>> addInsumoNuevo(List<Map<String, dynamic>> insumos) async {
+    try {
+      final String? token = await _getToken();
+      List<Map<String, dynamic>> insumosGuardados = [];  // Lista para almacenar los insumos guardados
+
+      // Iterar sobre cada insumo y hacer una solicitud HTTP para cada uno
+      for (var insumo in insumos) {
+
+        final response = await http.post(
+          Uri.parse("$baseUrl/insumos"),  // Endpoint para crear un nuevo insumo
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+          body: jsonEncode(insumo),  // Enviamos solo el insumo
+        );
+
+        // Verificar si el insumo se guardó correctamente
+        if (response.statusCode == 201) {
+          // Si el insumo se guarda correctamente, obtenemos los datos del insumo guardado
+          Map<String, dynamic> insumoGuardado = jsonDecode(response.body);
+          insumosGuardados.add(insumoGuardado);  // Agregamos el insumo guardado a la lista
+        } else {
+          // Si alguna solicitud falla, lanza una excepción
+          if (kDebugMode) {
+            print("Error al guardar el insumo: ${response.body}");
+          }
+          return [];  // Retornamos una lista vacía si hubo un error
+        }
+      }
+
+      // Devolver la lista de insumos guardados con sus ids
+      return insumosGuardados;
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al guardar los insumos nuevos: $e");
+      return [];  // En caso de error, retornamos una lista vacía
+    }
+  }
+
 }

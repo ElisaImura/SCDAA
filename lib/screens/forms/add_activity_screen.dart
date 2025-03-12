@@ -20,6 +20,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _insumoController = TextEditingController();
+  final TextEditingController _newInsumoController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedCiclo;
@@ -195,9 +196,19 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           TypeAheadField<Map<String, dynamic>>(
             controller: _insumoController,
             suggestionsCallback: (pattern) async {
+              final prefs = await SharedPreferences.getInstance();
+              final String? token = prefs.getString("auth_token");
               final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
               if (activityProvider.insumos.isEmpty) {
-                await activityProvider.fetchInsumos('your_token');
+                if (token == null) {
+                  if (kDebugMode) {
+                    print("Error: Token is null, please log in again.");
+                  }
+                } else {
+                  if (activityProvider.insumos.isEmpty) {
+                    await activityProvider.fetchInsumos(token);
+                  }
+                }
               }
               return activityProvider.insumos.where((insumo) {
                 return insumo['ins_desc']!.toLowerCase().contains(pattern.toLowerCase());
@@ -218,6 +229,34 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 });
                 _insumoController.clear();
               });
+            },
+          ),
+          const SizedBox(height: 15),
+          // Campo para agregar un insumo nuevo manualmente
+          TextFormField(
+            controller: _newInsumoController,
+            decoration: const InputDecoration(
+              labelText: "Nuevo insumo",
+              hintText: "Agregar nuevo insumo",
+              border: OutlineInputBorder(),
+            ),
+            onFieldSubmitted: (value) {
+              if (value.isNotEmpty) {
+                setState(() {
+                  var datos = {
+                    'ins_desc': value,
+                    'ins_id': -1, // Asignamos un valor único para indicar que es nuevo
+                    'inst_cant': 0.0,
+                    'controller': TextEditingController(text: ''),
+                  };
+                  
+                  // Add the map directly to the list
+                  _selectedInsumos.add(datos);  // Adding the map to the list directly
+
+                  _newInsumoController.clear();
+                });
+              }
+
             },
           ),
           const SizedBox(height: 15),
@@ -282,7 +321,57 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () async {
-          if (_formKey.currentState!.validate() && _selectedCiclo != null && _selectedTipoActividad != null) {
+          if (_formKey.currentState!.validate() &&
+              _selectedCiclo != null &&
+              _selectedTipoActividad != null) {
+
+            // 1. Guardar los insumos nuevos primero
+            List<Map<String, dynamic>> insumosData = [];
+            List<Map<String, dynamic>> insumosNuevos = [];
+            
+            // Filtrar insumos nuevos (con ins_id == -1)
+            for (var insumo in _selectedInsumos) {
+              if (insumo['ins_id'] == -1) {
+                // Es un insumo nuevo, lo agregamos a la lista de insumos nuevos
+                insumosNuevos.add({
+                  'ins_desc': insumo['ins_desc'],
+                  'inst_cant': insumo['inst_cant'] ?? 0.0,
+                });
+              } else {
+                // Es un insumo ya existente, lo agregamos a los insumosData
+                insumosData.add({
+                  'ins_id': insumo['ins_id'],
+                  'ins_cant': insumo['inst_cant'] ?? 0.0,
+                });
+              }
+            }
+
+            // Si hay insumos nuevos, los guardamos primero
+            if (insumosNuevos.isNotEmpty) {
+              List<Map<String, dynamic>> insumosGuardados = await Provider.of<ActivityProvider>(context, listen: false)
+                  .addInsumoNuevo(insumosNuevos);  // Llamamos a la función para guardar los insumos nuevos
+
+              if (insumosGuardados.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Error al guardar los insumos nuevos")));
+                return;
+              }
+
+              // Agregamos los insumos nuevos con sus ids a la lista de insumos que se enviará a la actividad
+              for (var insumoNuevo in insumosNuevos) {
+                // Comparamos el insumoNuevo con los insumos guardados para obtener el ins_id
+                for (var insumoGuardado in insumosGuardados) {
+                  if (insumoNuevo['ins_desc'] == insumoGuardado['ins_desc']) {
+                    insumosData.add({
+                      'ins_id': insumoGuardado['ins_id'],  // Asignamos el ins_id recuperado
+                      'ins_cant': insumoNuevo['inst_cant'],  // Asignamos la cantidad del insumo nuevo
+                    });
+                  }
+                }
+              }
+            }
+
+            // 2. Crear el objeto de actividad
             Map<String, dynamic> activityData = {
               "tpAct_id": int.parse(_selectedTipoActividad!),
               "ci_id": int.parse(_selectedCiclo!),
@@ -292,14 +381,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               "uss_id": _ussId,
             };
 
-            if (_selectedInsumos.isNotEmpty) {
-              List<Map<String, dynamic>> insumosData = [];
-              for (var insumo in _selectedInsumos) {
-                insumosData.add({
-                  'ins_id': insumo['ins_id'],
-                  'ins_cant': insumo['inst_cant'] ?? 0.0,
-                });
-              }
+            // Agregar los insumos a la actividad
+            if (insumosData.isNotEmpty) {
               activityData['insumos'] = insumosData;
             }
 
@@ -307,13 +390,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               print("Datos que se enviarán a la API: $activityData");
             }
 
+            // 3. Guardar la actividad
             bool success = await Provider.of<ActivityProvider>(context, listen: false).addActivity(activityData);
 
             if (success) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Actividad guardada con éxito")));
               context.go('/home');
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar")));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar actividad")));
             }
           }
         },
