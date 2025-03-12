@@ -9,6 +9,7 @@ class HomeScreen extends StatefulWidget {
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<HomeScreen> {
   bool mostrarTodasLasTareas = false;
 
@@ -18,6 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Llamamos al método que obtiene los ciclos activos cuando la pantalla se carga
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
     activityProvider.fetchCiclosActivos(); // Llama a la función que obtiene los ciclos activos
+    activityProvider.fetchActividadesRecientes();
+    activityProvider.fetchTareas();
   }
 
   @override
@@ -25,14 +28,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final activityProvider = Provider.of<ActivityProvider>(context);
     String fechaHoy = DateFormat('EEEE, d MMMM y', 'es').format(DateTime.now());
 
-    // Obtener los ciclos activos desde el provider
-    List<String> ciclosActivos = activityProvider.ciclosActivos
-        .map<String>((ciclo) => ciclo['ci_nombre'] ?? "Sin nombre") // Obtener el nombre del ciclo
+    // Obtener las actividades recientes desde el provider
+    List<Widget> actividadesRecientes = activityProvider.actividadesRecientes
+        .map((actividad) {
+          String tipoActividad = actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
+          String loteNombre = actividad['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
+          String fecha = actividad['act_fecha'] ?? "Fecha desconocida";
+          String usuarioAsignado = actividad['ciclo']['act_ciclos'][0]['uss_nombre'] ?? "Usuario desconocido";
+
+          Color color = _getColorForActivity(tipoActividad);
+          IconData icono = _getIconForActivity(tipoActividad);
+
+          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color);
+        })
         .toList();
 
-    List<Widget> proximasTareas = activityProvider.tareas.map((tarea) {
-      return _buildCard(tarea['titulo'], tarea['fecha'], tarea['icono'], tarea['color']);
-    }).toList();
+    // Obtener las próximas tareas desde el provider
+    List<Widget> proximasTareas = activityProvider.tareas
+        .map((tarea) {
+          String tipoActividad = tarea['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
+          String loteNombre = tarea['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
+          String fecha = tarea['act_fecha'] ?? "Fecha desconocida";
+          String usuarioAsignado = tarea['ciclo']['act_ciclos'][0]['uss_nombre'] ?? "Usuario desconocido";
+
+          Color color = _getColorForActivity(tipoActividad);
+          IconData icono = _getIconForActivity(tipoActividad);
+
+          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color);
+        })
+        .toList();
 
     return Scaffold(
       body: SafeArea(
@@ -42,13 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCiclosActivos(ciclosActivos, fechaHoy),
+                _buildCiclosActivos(activityProvider.ciclosActivos, fechaHoy),
                 const SizedBox(height: 20),
-                _buildSeccion("Actividades Recientes", [
-                  ...activityProvider.actividadesRecientes.map((actividad) {
-                    return _buildCard(actividad['titulo'], actividad['fecha'], actividad['icono'], actividad['color']);
-                  })
-                ]),
+                _buildSeccion("Actividades Recientes", actividadesRecientes),
                 const SizedBox(height: 20),
                 _buildSeccion("Próximas Tareas", [
                   ...proximasTareas.take(mostrarTodasLasTareas ? proximasTareas.length : 3),
@@ -70,7 +90,46 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCiclosActivos(List<String> ciclos, String fecha) {
+  IconData _getIconForActivity(String tipoActividad) {
+    switch (tipoActividad) {
+      case 'Desecación'://
+        return Icons.cloud_done; 
+      case 'Tratamiento de Semilla': //
+        return Icons.spa;
+      case 'Siembra': //
+        return Icons.grain;
+      case 'Control de Germinación':
+        return Icons.local_florist; 
+      case 'Fumigación': //
+        return Icons.local_fire_department; 
+      case 'Cosecha':
+        return Icons.agriculture;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  // Asignar colores a cada tipo de actividad
+  Color _getColorForActivity(String tipoActividad) {
+    switch (tipoActividad) {
+      case 'Desecación':
+        return Colors.blue; 
+      case 'Tratamiento de Semilla':
+        return Colors.green;
+      case 'Siembra':
+        return Colors.orange;
+      case 'Control de Germinación':
+        return Colors.purple;
+      case 'Fumigación':
+        return Colors.red;
+      case 'Cosecha':
+        return Colors.amber;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildCiclosActivos(List<dynamic> ciclos, String fecha) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -89,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             children: ciclos.map((ciclo) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: Chip(label: Text(ciclo)),
+              child: Chip(label: Text(ciclo['ci_nombre'])),
             )).toList(),
           ),
         ),
@@ -110,14 +169,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCard(String titulo, String subtitulo, IconData icono, Color? color) {
+  Widget _buildCard(
+      String titulo, String subtitulo, String fecha, String usuario, IconData icono, Color color) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
-        leading: Icon(icono, color: color),
+        leading: Icon(icono, color: color,),
         title: Text(titulo),
-        subtitle: Text(subtitulo),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Lote: $subtitulo"),
+            Text("Fecha: $fecha"),
+            Text("Responsable: $usuario"),
+          ],
+        ),
       ),
     );
   }

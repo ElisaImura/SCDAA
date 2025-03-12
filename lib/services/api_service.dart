@@ -372,26 +372,6 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     return ciclosActivos;
   }
 
-  /// 🔹 Obtener las últimas 3 actividades recientes, ordenadas por fecha
-  Future<List<Map<String, dynamic>>> fetchActividadesRecientes() async {
-    final String? token = await _getToken();
-    final response = await http.get(
-      Uri.parse("$baseUrl/actividades"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-    List<dynamic> data = _handleResponse(response);
-
-    // Ordenar actividades por fecha (de más reciente a más antigua)
-    data.sort((a, b) => DateTime.parse(b['act_fecha']).compareTo(DateTime.parse(a['act_fecha'])));
-
-    // Tomamos las 3 primeras actividades
-    return data.take(3).toList().cast<Map<String, dynamic>>();
-  }
-
   /// 🔹 Obtener las próximas tareas (actividades con fecha de inicio futura)
   Future<List<Map<String, dynamic>>> fetchProximasTareas() async {
     final String? token = await _getToken();

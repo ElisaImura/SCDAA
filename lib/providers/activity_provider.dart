@@ -169,10 +169,27 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Cargar las últimas 3 actividades recientes
+  /// 🔹 Cargar las últimas 3 actividades recientes que tengan fecha anterior a la fecha actual
   Future<void> fetchActividadesRecientes() async {
     try {
-      _actividadesRecientes = await _apiService.fetchActividadesRecientes(); // Llamada al ApiService para obtener las actividades recientes
+      // Llamada al ApiService para obtener todas las actividades
+      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+
+      // Obtener la fecha actual
+      DateTime fechaHoy = DateTime.now();
+
+      // Filtrar las actividades que tengan fecha anterior a la fecha de hoy
+      actividades = actividades.where((actividad) {
+        DateTime fechaActividad = DateTime.parse(actividad['act_fecha']);
+        return fechaActividad.isBefore(fechaHoy); // Solo actividades con fecha anterior a hoy
+      }).toList();
+
+      // Ordenamos las actividades por fecha de forma descendente (las más recientes primero)
+      actividades.sort((a, b) => DateTime.parse(b['act_fecha']).compareTo(DateTime.parse(a['act_fecha'])));
+
+      // Tomamos solo las últimas 3 actividades
+      _actividadesRecientes = actividades.take(3).toList();
+
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print("❌ Error al obtener actividades recientes: $e");
@@ -182,8 +199,20 @@ class ActivityProvider extends ChangeNotifier {
   /// 🔹 Cargar las próximas tareas (actividades con fecha futura)
   Future<void> fetchTareas() async {
     try {
-      // Supongamos que actividades es una lista de mapas con datos sobre tareas
-      _tareas = await _apiService.fetchActividadesRecientes(); // O la función correspondiente para obtener tareas
+      // Llamada al ApiService para obtener todas las actividades
+      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+
+      // Obtener la fecha actual
+      DateTime now = DateTime.now();
+
+      // Filtramos las actividades cuya fecha de inicio es posterior a la fecha de hoy
+      _tareas = actividades.where((actividad) {
+        DateTime fechaInicio = DateTime.parse(actividad['act_fecha']); // Asegurarnos de usar la fecha correcta
+        return fechaInicio.isAfter(now); // Solo actividades con fecha posterior a hoy
+      }).toList();
+
+      // Ordenar las tareas por fecha de forma ascendente (más cercanas primero)
+      _tareas.sort((a, b) => DateTime.parse(a['act_fecha']).compareTo(DateTime.parse(b['act_fecha'])));
 
       notifyListeners();
     } catch (e) {
