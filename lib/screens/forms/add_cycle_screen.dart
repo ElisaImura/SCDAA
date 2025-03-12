@@ -1,6 +1,5 @@
-// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -20,14 +19,16 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
   String? _selectedVariedad;
   String? _selectedLote;
   bool _mostrarNuevaVariedad = false;
+  bool _mostrarNuevoLote = false; // Flag para el nuevo lote
   final TextEditingController _variedadController = TextEditingController();
+  final TextEditingController _loteController = TextEditingController(); // Controlador para el nuevo lote
 
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Nuevo Ciclo")),
+      appBar: AppBar(title: Text("Nuevo Ciclo")),
       body: activityProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -66,7 +67,8 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     // Seleccionar o Agregar Variedad
                     DropdownButtonFormField<String>(
                       value: _selectedVariedad,
-                      decoration: const InputDecoration(labelText: "Variedad", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: "Variedad", border: OutlineInputBorder()),
                       items: [
                         if (activityProvider.variedades.isNotEmpty)
                           ...activityProvider.variedades.map((variedad) {
@@ -92,28 +94,43 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     if (_mostrarNuevaVariedad)
                       TextFormField(
                         controller: _variedadController,
-                        decoration: const InputDecoration(labelText: "Nombre de la Nueva Variedad", border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                            labelText: "Nombre de la Nueva Variedad", border: OutlineInputBorder()),
                         validator: (value) => value!.isEmpty ? "Este campo es obligatorio" : null,
                       ),
                     if (_mostrarNuevaVariedad) const SizedBox(height: 15),
 
-                    // Seleccionar Lote
+                    // Seleccionar o Agregar Lote
                     DropdownButtonFormField<String>(
                       value: _selectedLote,
                       decoration: const InputDecoration(labelText: "Lote", border: OutlineInputBorder()),
-                      items: activityProvider.lotes.map((lote) {
-                        return DropdownMenuItem(
-                          value: lote["lot_id"].toString(),
-                          child: Text(lote["lot_nombre"]),
-                        );
-                      }).toList(),
+                      items: [
+                        if (activityProvider.lotes.isNotEmpty)
+                          ...activityProvider.lotes.map((lote) {
+                            return DropdownMenuItem(
+                              value: lote["lot_id"].toString(),
+                              child: Text(lote["lot_nombre"]),
+                            );
+                          }),
+                        const DropdownMenuItem(value: "nuevo", child: Text("➕ Nuevo Lote")),
+                      ],
                       onChanged: (value) {
                         setState(() {
                           _selectedLote = value;
+                          _mostrarNuevoLote = value == "nuevo";
                         });
                       },
                     ),
                     const SizedBox(height: 15),
+
+                    // Campo de Nuevo Lote (solo si se elige "Nuevo Lote")
+                    if (_mostrarNuevoLote)
+                      TextFormField(
+                        controller: _loteController,
+                        decoration: const InputDecoration(labelText: "Nombre del Nuevo Lote", border: OutlineInputBorder()),
+                        validator: (value) => value!.isEmpty ? "Este campo es obligatorio" : null,
+                      ),
+                    if (_mostrarNuevoLote) const SizedBox(height: 15),
 
                     // Seleccionar Fecha de Inicio del Ciclo
                     ListTile(
@@ -140,13 +157,31 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (kDebugMode) {
-                            print("User ${await activityProvider.getLoggedUserId()}");
-                          }
                           if (_formKey.currentState!.validate() &&
                               _selectedTipoCultivo != null &&
                               (_selectedVariedad != null || _mostrarNuevaVariedad) &&
                               _selectedLote != null) {
+
+                            // Obtener el id de nuevo lote si se seleccionó "Nuevo Lote"
+                            int? loteId;
+                            if (_mostrarNuevoLote) {
+                              // Guardar el nuevo lote y obtener su ID
+                              loteId = await activityProvider.addLote(
+                                _loteController.text,
+                              );
+                            } else {
+                              // Verificar si el lote ya tiene un ciclo activo
+                              bool hasActiveCycle = await activityProvider.checkActiveCycle(int.parse(_selectedLote!));
+
+                              if (hasActiveCycle) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
+                                );
+                                return;
+                              }
+                              // Si no es un nuevo lote, usar el seleccionado
+                              loteId = int.parse(_selectedLote!);
+                            }
 
                             // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
                             int? variedadId;
@@ -162,9 +197,9 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                             }
 
                             // Verifica que se haya obtenido un ID de variedad válido
-                            if (variedadId == null) {
+                            if (variedadId == null || loteId == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Error al obtener el ID de la variedad"))
+                                const SnackBar(content: Text("Error al obtener el ID del lote o la variedad"))
                               );
                               return;
                             }
@@ -173,9 +208,9 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                             Map<String, dynamic> cicloData = {
                               "tpCult_id": int.parse(_selectedTipoCultivo!),
                               "tpVar_id": variedadId,
-                              "lot_id": int.parse(_selectedLote!),
+                              "lot_id": loteId,
                               "ci_fechaini": DateFormat("yyyy-MM-dd").format(_selectedDate),
-                              "uss_id": await activityProvider.getLoggedUserId(), // Verificar si el valor de `uss_id` no es null
+                              "uss_id": await activityProvider.getLoggedUserId(),
                             };
 
                             // Llamar a la función addCiclo

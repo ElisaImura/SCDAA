@@ -1,3 +1,6 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -24,7 +27,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   int? _ussId;
   String _activityState = 'Pendiente';
 
-  List<Map<String, dynamic>> _selectedInsumos = [];
+  final List<Map<String, dynamic>> _selectedInsumos = [];
 
   @override
   void initState() {
@@ -227,7 +230,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               ),
               child: Column(
                 children: _selectedInsumos.map((insumo) {
-                  TextEditingController _cantidadController = insumo['controller'];
+                  TextEditingController cantidadController = insumo['controller'];
                   return ListTile(
                     title: Row(
                       children: [
@@ -235,7 +238,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         SizedBox(
                           width: 80,
                           child: TextFormField(
-                            controller: _cantidadController,
+                            controller: cantidadController,
                             keyboardType: TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               hintText: '0.0',
@@ -300,7 +303,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               activityData['insumos'] = insumosData;
             }
 
-            print("Datos que se enviarán a la API: $activityData");
+            if (kDebugMode) {
+              print("Datos que se enviarán a la API: $activityData");
+            }
 
             bool success = await Provider.of<ActivityProvider>(context, listen: false).addActivity(activityData);
 

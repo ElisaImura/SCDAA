@@ -137,4 +137,20 @@ class ActivityProvider extends ChangeNotifier {
       notifyListeners(); // Notificar que terminó la carga
     }
   }
+
+  /// 🔹 Agregar un nuevo lote
+  Future<int?> addLote(String nombre) async {
+    int? loteId = await _apiService.addLote(nombre);
+    if (loteId != null) {
+      _lotes.add({"lot_id": loteId, "lot_nombre": nombre}); // Agregamos el nuevo lote a la lista
+      notifyListeners(); // Notificamos para que la UI se actualice
+    }
+    return loteId;
+  }
+
+  /// 🔹 Verificar si el lote tiene un ciclo activo
+  Future<bool> checkActiveCycle(int lotId) async {
+    return await _apiService.hasActiveCycle(lotId); // Llamamos al método del ApiService
+  }
+
 }

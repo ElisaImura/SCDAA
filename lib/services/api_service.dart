@@ -301,4 +301,50 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     return userId;
   }
 
+  /// 🔹 Agregar un nuevo lote a la API
+  Future<int?> addLote(String nombre) async {
+    final String? token = await _getToken();
+
+    // Crea el objeto JSON
+    final bodyData = jsonEncode({
+      "lot_nombre": nombre,
+    });
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/lotes"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: bodyData,
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data["lot_id"]; // Retorna el ID del nuevo lote
+    }
+    return null;
+  }
+
+  /// 🔹 Verificar si el lote tiene un ciclo activo (sin `ci_fechafin`)
+  Future<bool> hasActiveCycle(int lotId) async {
+    final String? token = await _getToken();
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/ciclos?lot_id=$lotId"),  // Filtra por el ID del lote
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+
+      // Verificar si hay algún ciclo activo (sin `ci_fechafin`)
+      return data.any((ciclo) => ciclo['ci_fechafin'] == null);
+    } else {
+      throw Exception("Error al verificar ciclos activos");
+    }
+  }
 }
