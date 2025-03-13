@@ -24,12 +24,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final TextEditingController _densidadController = TextEditingController();
   final TextEditingController _cosRendiController = TextEditingController();
   final TextEditingController _cosHumeController = TextEditingController();
+  final TextEditingController _conCantController = TextEditingController();
 
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedCiclo;
   String? _selectedTipoActividad;
   int? _ussId;
+  int? _conVigor;
   String _activityState = 'Pendiente';
 
   final List<Map<String, dynamic>> _selectedInsumos = [];
@@ -116,6 +118,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     // Solo mostramos la sección de densidad si el tipo de actividad es "Siembra"
                     if (_selectedTipoActividad == "3") _buildDensidadField(),
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
+                    if (_selectedTipoActividad == "4")_buildConCantField(),
+                    if (_selectedTipoActividad == "4")_buildConVigorField(),
                     if (["1", "2", "3", "5"].contains(_selectedTipoActividad)) _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
@@ -383,6 +387,48 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
+  Widget _buildConCantField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: TextFormField(
+        controller: _conCantController,
+        decoration: const InputDecoration(
+          labelText: "Cantidad de plantas por ha",
+          border: OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.number,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Por favor ingrese la cantidad de plantas por ha';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _buildConVigorField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: DropdownButtonFormField<int>(
+        value: _conVigor,
+        decoration: const InputDecoration(labelText: "Vigor de las plantas", border: OutlineInputBorder()),
+        items: [
+          DropdownMenuItem(value: 1, child: Text("Deficiente")),
+          DropdownMenuItem(value: 2, child: Text("Malo")),
+          DropdownMenuItem(value: 3, child: Text("Regular")),
+          DropdownMenuItem(value: 4, child: Text("Bueno")),
+          DropdownMenuItem(value: 5, child: Text("Excelente")),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _conVigor = value!;
+          });
+        },
+      ),
+    );
+}
+
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
@@ -398,6 +444,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
             double? cosRendi = _selectedTipoActividad == "6" ? double.tryParse(_cosRendiController.text) : null;
             double? cosHume = _selectedTipoActividad == "6" ? double.tryParse(_cosHumeController.text) : null;
+            int? conCant = _selectedTipoActividad == "4" ? int.tryParse(_conCantController.text) : null;
             
             // Filtrar insumos nuevos (con ins_id == -1)
             for (var insumo in _selectedInsumos) {
@@ -465,6 +512,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               activityData['cos_hume'] = cosHume;
             }
 
+            // Validación de con_cant y con_vigor antes de agregarlos a la actividad
+            if (conCant != null) {
+              activityData['con_cant'] = conCant;  // Cantidad de plantas por ha
+            }
+
+            if (_conVigor != null) {
+              activityData['con_vigor'] = _conVigor;  // Vigor de las plantas (1 a 5)
+            }
+
             // Agregar los insumos a la actividad
             if (insumosData.isNotEmpty) {
               activityData['insumos'] = insumosData;
@@ -517,5 +573,23 @@ int _getActivityStateValue(String state) {
       return 3;
     default:
       return 1; // Valor predeterminado (Pendiente)
+  }
+}
+
+// Mapeo de los valores de con_vigor a los números respectivos (1 a 5)
+int? mapVigorToValue(String vigor) {
+  switch (vigor) {
+    case 'Deficiente':
+      return 1;
+    case 'Malo':
+      return 2;
+    case 'Regular':
+      return 3;
+    case 'Bueno':
+      return 4;
+    case 'Excelente':
+      return 5;
+    default:
+      return null; // Si no es un valor válido
   }
 }

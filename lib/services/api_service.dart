@@ -99,7 +99,10 @@ class ApiService {
       },
     );
 
-    return _handleResponse(response).cast<Map<String, dynamic>>();
+    // Obtener la respuesta procesada
+    List<Map<String, dynamic>> actividades = _handleResponse(response).cast<Map<String, dynamic>>();
+
+    return actividades;
   }
 
   /// 🔹 Obtener los ciclos activos (sin `ci_fechafin`)

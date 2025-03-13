@@ -169,7 +169,7 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Cargar las últimas 3 actividades recientes que tengan fecha anterior a la fecha actual
+  /// 🔹 Cargar las últimas 3 actividades registradas, ordenadas por la fecha de actividad
   Future<void> fetchActividadesRecientes() async {
     try {
       // Llamada al ApiService para obtener todas las actividades
@@ -178,17 +178,28 @@ class ActivityProvider extends ChangeNotifier {
       // Obtener la fecha actual
       DateTime fechaHoy = DateTime.now();
 
-      // Filtrar las actividades que tengan fecha anterior a la fecha de hoy
+      // Filtrar actividades cuya fecha sea posterior al día de hoy
       actividades = actividades.where((actividad) {
         DateTime fechaActividad = DateTime.parse(actividad['act_fecha']);
-        return fechaActividad.isBefore(fechaHoy); // Solo actividades con fecha anterior a hoy
+        return fechaActividad.isBefore(fechaHoy);  // Solo actividades con fecha anterior a hoy
       }).toList();
 
-      // Ordenamos las actividades por fecha de forma descendente (las más recientes primero)
-      actividades.sort((a, b) => DateTime.parse(b['act_fecha']).compareTo(DateTime.parse(a['act_fecha'])));
+      // Si hay duplicados en la fecha, ordenar por fecha de creación (si está disponible)
+      actividades.sort((a, b) {
+        DateTime fechaA = DateTime.parse(a['act_fecha']);
+        DateTime fechaB = DateTime.parse(b['act_fecha']);
 
-      // Tomamos solo las últimas 3 actividades
-      _actividadesRecientes = actividades.take(3).toList();
+        // Si las fechas de actividad son iguales, verificamos por la fecha de creación
+        if (fechaA.isAtSameMomentAs(fechaB)) {
+          DateTime fechaCreacionA = DateTime.parse(a['created_at']);
+          DateTime fechaCreacionB = DateTime.parse(b['created_at']);
+          return fechaCreacionB.compareTo(fechaCreacionA);
+        }
+
+        return fechaB.compareTo(fechaA);
+      });
+
+      _actividadesRecientes = actividades.isEmpty ? [] : actividades.take(3).toList();
 
       notifyListeners();
     } catch (e) {
@@ -205,9 +216,9 @@ class ActivityProvider extends ChangeNotifier {
       // Obtener la fecha actual
       DateTime now = DateTime.now();
 
-      // Filtramos las actividades cuya fecha de inicio es posterior a la fecha de hoy
+      // Filtra actividades cuya fecha de inicio es posterior a la fecha de hoy
       _tareas = actividades.where((actividad) {
-        DateTime fechaInicio = DateTime.parse(actividad['act_fecha']); // Asegurarnos de usar la fecha correcta
+        DateTime fechaInicio = DateTime.parse(actividad['act_fecha']);
         return fechaInicio.isAfter(now); // Solo actividades con fecha posterior a hoy
       }).toList();
 
@@ -220,13 +231,11 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  // Función para agregar un nuevo insumo y obtener los datos (incluyendo IDs generados)
+  // Función para agregar un nuevo insumo y obtener los datos
   Future<List<Map<String, dynamic>>> addInsumoNuevo(List<Map<String, dynamic>> insumos) async {
     try {
-      // Llamamos al ApiService para agregar los insumos y recuperar los datos guardados
       List<Map<String, dynamic>> insumosGuardados = await _apiService.addInsumoNuevo(insumos);
 
-      // Verificamos si la respuesta no está vacía y la retornamos
       if (insumosGuardados.isNotEmpty) {
         return insumosGuardados;
       } else {
