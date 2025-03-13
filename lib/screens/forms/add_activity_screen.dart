@@ -21,6 +21,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _insumoController = TextEditingController();
   final TextEditingController _newInsumoController = TextEditingController();
+  final TextEditingController _densidadController = TextEditingController();
+  final TextEditingController _cosRendiController = TextEditingController();
+  final TextEditingController _cosHumeController = TextEditingController();
+
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedCiclo;
@@ -33,6 +37,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   @override
   void initState() {
     super.initState();
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    activityProvider.fetchCiclosActivos();
     _getUserId();
   }
 
@@ -107,6 +113,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
                     const SizedBox(height: 20),
+                    // Solo mostramos la sección de densidad si el tipo de actividad es "Siembra"
+                    if (_selectedTipoActividad == "3") _buildDensidadField(),
+                    if (_selectedTipoActividad == "6") _buildCosechaFields(),
                     if (["1", "2", "3", "5"].contains(_selectedTipoActividad)) _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
@@ -117,7 +126,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             ),
     );
   }
-
+ 
   Widget _buildDatePicker() {
     return ListTile(
       title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
@@ -143,7 +152,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       value: _selectedCiclo,
       decoration: const InputDecoration(labelText: "Ciclo", border: OutlineInputBorder()),
       items: [
-        ...activityProvider.ciclos.map((ciclo) {
+        ...activityProvider.ciclosActivos.map((ciclo) {  // Usamos ciclosActivos en lugar de ciclos
           String loteName = activityProvider.lotes.isNotEmpty
               ? activityProvider.lotes.firstWhere(
                   (lote) => lote['lot_id'] == ciclo['lot_id'],
@@ -151,7 +160,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               : 'Desconocido';
           return DropdownMenuItem(
             value: ciclo["ci_id"].toString(),
-            child: Text("${ciclo['ci_nombre']} ($loteName)"), // Cambiado de ci_id a ci_nombre
+            child: Text("${ciclo['ci_nombre']} ($loteName)"),
           );
         }),
         const DropdownMenuItem(value: "nuevo", child: Text("➕ Crear nuevo ciclo")),
@@ -210,9 +219,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   }
                 }
               }
-              return activityProvider.insumos.where((insumo) {
-                return insumo['ins_desc']!.toLowerCase().contains(pattern.toLowerCase());
-              }).toList();
+              return activityProvider.insumos.toList();
             },
             itemBuilder: (context, suggestion) {
               return ListTile(
@@ -316,6 +323,66 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
+  Widget _buildCosechaFields() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: _cosRendiController,
+            decoration: const InputDecoration(
+              labelText: "Rendimiento (kg/ha)",
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, ingresa el rendimiento de la cosecha.';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _cosHumeController,
+            decoration: const InputDecoration(
+              labelText: "Humedad del Grano (%)",
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, ingresa la humedad del grano.';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDensidadField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: TextFormField(
+        controller: _densidadController,
+        decoration: const InputDecoration(
+          labelText: "Densidad de Semilla (kg/ha)",
+          border: OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Por favor, ingresa la densidad de semilla.';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
@@ -328,6 +395,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             // 1. Guardar los insumos nuevos primero
             List<Map<String, dynamic>> insumosData = [];
             List<Map<String, dynamic>> insumosNuevos = [];
+
+            double? cosRendi = _selectedTipoActividad == "6" ? double.tryParse(_cosRendiController.text) : null;
+            double? cosHume = _selectedTipoActividad == "6" ? double.tryParse(_cosHumeController.text) : null;
             
             // Filtrar insumos nuevos (con ins_id == -1)
             for (var insumo in _selectedInsumos) {
@@ -371,15 +441,29 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               }
             }
 
+            //Mapeamos el estado a su valor numérico
+            int activityState = _getActivityStateValue(_activityState);
+
             // 2. Crear el objeto de actividad
             Map<String, dynamic> activityData = {
               "tpAct_id": int.parse(_selectedTipoActividad!),
               "ci_id": int.parse(_selectedCiclo!),
               "act_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
               "act_desc": _descripcionController.text,
-              "act_estado": 1,
-              "uss_id": _ussId,
+              "act_estado": activityState,
+              "uss_id": _ussId
             };
+
+            //Agrega datos de siembra
+            if (_densidadController.text.isNotEmpty) {
+              activityData['sie_densidad'] = _densidadController.text;
+            }
+
+            //Agrega datos de cosecha
+            if (cosRendi != null && cosHume != null) {
+              activityData['cos_rendi'] = cosRendi;
+              activityData['cos_hume'] = cosHume;
+            }
 
             // Agregar los insumos a la actividad
             if (insumosData.isNotEmpty) {
@@ -406,16 +490,32 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Pendiente':
-        return Colors.orange;
-      case 'En progreso':
-        return Colors.blue;
-      case 'Finalizada':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
+  
+}
+
+
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'Pendiente':
+      return Colors.orange;
+    case 'En progreso':
+      return Colors.blue;
+    case 'Finalizada':
+      return Colors.green;
+    default:
+      return Colors.grey;
+  }
+}
+// Función para mapear el estado a su valor numérico
+int _getActivityStateValue(String state) {
+  switch (state) {
+    case 'Pendiente':
+      return 1;
+    case 'En progreso':
+      return 2;
+    case 'Finalizada':
+      return 3;
+    default:
+      return 1; // Valor predeterminado (Pendiente)
   }
 }

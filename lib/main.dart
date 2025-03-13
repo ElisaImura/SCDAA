@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
+import 'package:mspaa/providers/weather_provider.dart';
 import 'package:mspaa/routes/app_router.dart';
 import 'package:mspaa/services/api_service.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,7 @@ void main() async {
         Provider<ApiService>(create: (_) => ApiService()), // Proveedor de ApiService
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
+        ChangeNotifierProvider(create: (_) => WeatherProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn), // Usar MyApp con el isLoggedIn como parámetro
     ),

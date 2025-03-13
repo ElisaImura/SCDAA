@@ -3,47 +3,61 @@ import 'package:mspaa/services/api_service.dart';
 
 class CalendarProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
-  Map<DateTime, List<Map<String, dynamic>>> _events = {};
+  Map<DateTime, List<Map<String, dynamic>>> _events = {}; // Actividades
+  Map<DateTime, Map<String, dynamic>> _weather = {}; // Clima por fecha
 
   bool _isLoading = true;
   bool get isLoading => _isLoading;
 
   Map<DateTime, List<Map<String, dynamic>>> get events => _events;
+  Map<DateTime, Map<String, dynamic>> get weather => _weather; // Getter para el clima
 
   CalendarProvider() {
-    fetchActividades();
+    fetchData();
   }
 
-  Future<void> fetchActividades() async {
-    _isLoading = true; // ✅ Establecer el estado de carga antes de la solicitud
-    notifyListeners(); // ✅ Notificar a los widgets solo una vez al comenzar
+  // Método para cargar actividades y clima
+  Future<void> fetchData() async {
+    _isLoading = true;
+    notifyListeners();
 
     try {
       final actividades = await _apiService.fetchActividades();
-      final Map<DateTime, List<Map<String, dynamic>>> eventos = {};
+      final clima = await _apiService.fetchClima(); // Supón que esto obtiene el clima de alguna API
 
+      final Map<DateTime, List<Map<String, dynamic>>> eventos = {};
+      final Map<DateTime, Map<String, dynamic>> weatherData = {};
+
+      // Procesar actividades
       for (var actividad in actividades) {
         final DateTime fecha = DateTime.parse(actividad['act_fecha']);
         final DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
 
-        // Asegurarnos de que la lista existe para la fecha, y si no, inicializarla.
         if (eventos[fechaNormalizada] == null) {
           eventos[fechaNormalizada] = [];
         }
-        
-        // Ahora agregamos la actividad sin preocuparse por el valor nulo
+
         eventos[fechaNormalizada]!.add(actividad);
       }
 
+      // Procesar clima
+      for (var climaItem in clima) {
+        final DateTime fecha = DateTime.parse(climaItem['cl_fecha']);
+        final DateTime fechaNormalizada = DateTime.utc(fecha.year, fecha.month, fecha.day);
+
+        weatherData[fechaNormalizada] = climaItem;
+      }
+
       _events = eventos;
+      _weather = weatherData;
     } catch (e, stacktrace) {
       if (kDebugMode) {
-        print("❌ Error al obtener actividades: $e");
-        print("🔍 Stacktrace: $stacktrace"); // ✅ Mostrar stacktrace para mejor depuración
+        print("❌ Error al obtener datos: $e");
+        print("🔍 Stacktrace: $stacktrace");
       }
     } finally {
       _isLoading = false;
-      notifyListeners(); // ✅ Notificar solo al final, una vez
+      notifyListeners();
     }
   }
 }

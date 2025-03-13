@@ -3,6 +3,7 @@ import 'package:mspaa/screens/forms/add_activity_screen.dart';
 import 'package:mspaa/screens/calendar_screen.dart';
 import 'package:mspaa/screens/config_screen.dart';
 import 'package:mspaa/screens/forms/add_cycle_screen.dart';
+import 'package:mspaa/screens/forms/add_weather_screen.dart';
 import 'package:mspaa/screens/home_screen.dart';
 import 'package:mspaa/screens/login_screen.dart';
 import 'package:mspaa/screens/reports_screen.dart';
@@ -45,6 +46,10 @@ class AppRouter {
         GoRoute(
           path: '/add-cycle',
           pageBuilder: (context, state) => NoTransitionPage(child: const AddCycleScreen()),
+        ),
+        GoRoute(
+          path: '/add-weather',
+          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const AddWeatherScreen())),
         ),
       ],
     );

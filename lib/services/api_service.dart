@@ -433,4 +433,43 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     }
   }
 
+  // Función para agregar los datos del clima
+  Future<bool> addWeatherData(Map<String, dynamic> weatherData) async {
+    try {
+      final String? token = await _getToken();
+      final response = await http.post(
+        Uri.parse("$baseUrl/clima"),  // Endpoint para guardar datos del clima
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(weatherData),  // Los datos del clima
+      );
+
+      if (response.statusCode == 201) {
+        return true; // Datos guardados exitosamente
+      } else {
+        throw Exception("Error al guardar los datos del clima");
+      }
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al guardar datos del clima: $e");
+      return false;
+    }
+  }
+
+  // Función para obtener los datos del clima
+  Future<List<Map<String, dynamic>>> fetchClima() async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/clima"));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else {
+        throw Exception('Error al obtener los datos del clima');
+      }
+    } catch (e) {
+      throw Exception('Error al obtener los datos del clima: $e');
+    }
+  }
 }

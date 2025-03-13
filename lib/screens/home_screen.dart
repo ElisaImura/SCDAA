@@ -16,9 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Llamamos al método que obtiene los ciclos activos cuando la pantalla se carga
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    activityProvider.fetchCiclosActivos(); // Llama a la función que obtiene los ciclos activos
+    activityProvider.fetchCiclosActivos();
     activityProvider.fetchActividadesRecientes();
     activityProvider.fetchTareas();
   }
@@ -68,20 +67,24 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildCiclosActivos(activityProvider.ciclosActivos, fechaHoy),
                 const SizedBox(height: 20),
-                _buildSeccion("Actividades Recientes", actividadesRecientes),
+                _buildSeccion("Actividades Recientes", actividadesRecientes.isEmpty
+                    ? [const SizedBox(height: 10), Text("No hay actividades para mostrar.", style: TextStyle(fontSize: 16, color: Colors.grey))]
+                    : actividadesRecientes),
                 const SizedBox(height: 20),
-                _buildSeccion("Próximas Tareas", [
-                  ...proximasTareas.take(mostrarTodasLasTareas ? proximasTareas.length : 3),
-                  if (proximasTareas.length > 3)
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          mostrarTodasLasTareas = !mostrarTodasLasTareas;
-                        });
-                      },
-                      child: Text(mostrarTodasLasTareas ? "Mostrar menos" : "Mostrar más"),
-                    ),
-                ]),
+                _buildSeccion("Próximas Tareas", proximasTareas.isEmpty
+                    ? [const SizedBox(height: 10), Text("No hay tareas para mostrar.", style: TextStyle(fontSize: 16, color: Colors.grey))]
+                    : [
+                        ...proximasTareas.take(mostrarTodasLasTareas ? proximasTareas.length : 3),
+                        if (proximasTareas.length > 3)
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                mostrarTodasLasTareas = !mostrarTodasLasTareas;
+                              });
+                            },
+                            child: Text(mostrarTodasLasTareas ? "Mostrar menos" : "Mostrar más"),
+                          ),
+                      ]),
               ],
             ),
           ),
@@ -92,15 +95,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   IconData _getIconForActivity(String tipoActividad) {
     switch (tipoActividad) {
-      case 'Desecación'://
+      case 'Desecación':
         return Icons.cloud_done; 
-      case 'Tratamiento de Semilla': //
+      case 'Tratamiento de Semilla':
         return Icons.spa;
-      case 'Siembra': //
+      case 'Siembra':
         return Icons.grain;
       case 'Control de Germinación':
         return Icons.local_florist; 
-      case 'Fumigación': //
+      case 'Fumigación':
         return Icons.local_fire_department; 
       case 'Cosecha':
         return Icons.agriculture;
@@ -109,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Asignar colores a cada tipo de actividad
   Color _getColorForActivity(String tipoActividad) {
     switch (tipoActividad) {
       case 'Desecación':
@@ -175,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
-        leading: Icon(icono, color: color,),
+        leading: Icon(icono, color: color),
         title: Text(titulo),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

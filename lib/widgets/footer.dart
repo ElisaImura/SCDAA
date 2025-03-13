@@ -41,9 +41,9 @@ class Footer extends StatelessWidget {
           Positioned(
             top: -15, // Ajuste para que sobresalga
             child: FloatingActionButton(
-              heroTag: null, // 🔹 Desactiva la animación Hero
+              heroTag: null, // Desactiva la animación Hero
               onPressed: () {
-                context.go('/add-activity');
+                _showActionDialog(context); // Mostrar ventana emergente al hacer clic
               },
               shape: const CircleBorder(),
               backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -56,7 +56,65 @@ class Footer extends StatelessWidget {
     );
   }
 
-  // 🔹 Widget para los iconos con navegación
+  // Mostrar un cuadro de diálogo con dos botones de opción
+  void _showActionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Botón para agregar actividad
+              _buildDialogButton(
+                context,
+                Icons.add_task,
+                "Agregar Actividad",
+                const Color.fromARGB(255, 38, 89, 40),
+                '/add-activity',
+              ),
+              const SizedBox(width: 16), // Espacio entre los botones
+              // Botón para agregar solo clima
+              _buildDialogButton(
+                context,
+                Icons.cloud,
+                "Agregar Solo Clima",
+                const Color.fromARGB(255, 35, 129, 41),
+                '/add-weather',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Widget para crear los botones del cuadro de diálogo
+  Widget _buildDialogButton(BuildContext context, IconData icon, String label, Color color, String route) {
+    return ElevatedButton(
+      onPressed: () {
+        context.go(route); // Navegar a la ruta correspondiente
+        Navigator.pop(context); // Cerrar el diálogo
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color, // Asignar color al botón
+        maximumSize: const Size(120, 120), // Botón cuadrado
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), // Bordes redondeados
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // Centrar el contenido dentro del botón
+        children: [
+          Icon(icon, color: Colors.white, size: 36), // Icono encima del texto
+          const SizedBox(height: 8),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  // Widget para los iconos con navegación
   Widget _buildNavItem(BuildContext context, IconData icon, String tooltip, String route) {
     return IconButton(
       onPressed: () {
