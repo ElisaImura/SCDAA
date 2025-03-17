@@ -1,12 +1,12 @@
 import 'package:go_router/go_router.dart';
 import 'package:mspaa/screens/forms/add_activity_screen.dart';
-import 'package:mspaa/screens/calendar_screen.dart';
-import 'package:mspaa/screens/config_screen.dart';
+import 'package:mspaa/screens/main/calendar_screen.dart';
+import 'package:mspaa/screens/main/config_screen.dart';
 import 'package:mspaa/screens/forms/add_cycle_screen.dart';
 import 'package:mspaa/screens/forms/add_weather_screen.dart';
-import 'package:mspaa/screens/home_screen.dart';
+import 'package:mspaa/screens/main/home_screen.dart';
 import 'package:mspaa/screens/login_screen.dart';
-import 'package:mspaa/screens/reports_screen.dart';
+import 'package:mspaa/screens/main/reports_screen.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
 
