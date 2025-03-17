@@ -1,12 +1,10 @@
-// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, unused_field, avoid_print
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class EditActivityScreen extends StatefulWidget {
   final Map<String, dynamic> activityData;
@@ -39,33 +37,33 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar los datos de la actividad para edición
+
     _descripcionController.text = widget.activityData['act_desc'];
     _selectedCiclo = widget.activityData['ciclo']['ci_id'].toString();
     _selectedTipoActividad = widget.activityData['tpAct_id'].toString();
     _selectedDate = DateTime.parse(widget.activityData['act_fecha']);
     
-    
-    //Busca el ciclo actual
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-
-    // 🔹 Cargar el ciclo específico si no está en los ciclos activos
-    if (_selectedCiclo != null &&
-        !activityProvider.ciclosActivos.any((ciclo) => ciclo["ci_id"].toString() == _selectedCiclo)) {
-      
-      // 📌 Llamar a la API para cargar el ciclo específico
-      activityProvider.fetchCicloEspecifico(int.parse(_selectedCiclo!));
+    if (widget.activityData['ciclo']['act_ciclos'] is List &&
+        widget.activityData['ciclo']['act_ciclos'].isNotEmpty) {
+      _ussId = widget.activityData['ciclo']['act_ciclos'][0]['uss_id'] as int?;
+    } else {
+      print("No hay datos en act_ciclos o la lista está vacía.");
+      _ussId = null; // O asigna un valor por defecto si es necesario
     }
 
+    print('Usuario: $_ussId');
 
-    // Configurar el estado de la actividad
-    _activityState = widget.activityData['act_estado'] == 1
-        ? "Pendiente"
-        : widget.activityData['act_estado'] == 2
-            ? "En curso"
-            : "Finalizado";
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
 
-    // Configurar el resto de los valores para los campos (si están disponibles)
+    // ✅ Llamar a los fetchers de manera diferida para evitar conflictos con el árbol de widgets
+    Future.delayed(Duration.zero, () {
+      activityProvider.fetchCiclosActivos();
+      activityProvider.fetchUsuarios();
+    });
+
+    // Configurar estado de la actividad
+    _activityState = _getActivityStateString(widget.activityData['act_estado']);
+
     if (widget.activityData['ciclo']['sie_densidad'] != null) {
       _densidadController.text = widget.activityData['ciclo']['sie_densidad'];
     }
@@ -75,7 +73,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     if (widget.activityData['ciclo']['datos_ciclo']['cos_hume'] != null) {
       _cosHumeController.text = widget.activityData['ciclo']['datos_ciclo']['cos_hume'].toString();
     }
-    if(widget.activityData['control_germinacion']!=null){
+    if (widget.activityData['control_germinacion'] != null) {
       if (widget.activityData['control_germinacion']['con_cant'] != null) {
         _conCantController.text = widget.activityData['control_germinacion']['con_cant'].toString();
       }
@@ -84,9 +82,15 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       }
     }
 
-    // Cargar insumos si es necesario
-    if (widget.activityData['insumos'] != null) {
-      _selectedInsumos.addAll(widget.activityData['insumos']);
+    if (widget.activityData['ciclo']['insumos'] is List) {
+      for (var insumo in widget.activityData['ciclo']['insumos']) {
+        _selectedInsumos.add({
+          'ins_desc': insumo['ins_desc'],
+          'ins_id': insumo['ins_id'],
+          'inst_cant': insumo['ins_cant'],
+          'controller': TextEditingController(text: insumo['ins_cant'].toString()), // ✅ Controlador para cantidad
+        });
+      }
     }
   }
 
@@ -112,7 +116,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       },
                       items: <String>['Pendiente', 'En progreso', 'Finalizada']
                           .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(value: value, child: Text(value));
+                        return DropdownMenuItem<String>(value: _getActivityStateString(widget.activityData['act_estado']), child: Text(value));
                       }).toList(),
                     ),
                   );
@@ -149,6 +153,8 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                     _buildCicloText(activityProvider),
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
+                    const SizedBox(height: 20),
+                    _buildResponsableDropdown(activityProvider),
                     const SizedBox(height: 20),
                     if (_selectedTipoActividad == "3") _buildDensidadField(),
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
@@ -322,20 +328,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           TypeAheadField<Map<String, dynamic>>(
             controller: _insumoController,
             suggestionsCallback: (pattern) async {
-              final prefs = await SharedPreferences.getInstance();
-              final String? token = prefs.getString("auth_token");
               final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-              if (activityProvider.insumos.isEmpty) {
-                if (token == null) {
-                  if (kDebugMode) {
-                    print("Error: Token is null, please log in again.");
-                  }
-                } else {
-                  if (activityProvider.insumos.isEmpty) {
-                    await activityProvider.fetchInsumos(token);
-                  }
-                }
-              }
               return activityProvider.insumos.toList();
             },
             itemBuilder: (context, suggestion) {
@@ -344,44 +337,51 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               );
             },
             onSelected: (suggestion) {
-              setState(() {
-                _selectedInsumos.add({
-                  'ins_desc': suggestion['ins_desc'],
-                  'ins_id': suggestion['ins_id'],
-                  'inst_cant': 0.0,
-                  'controller': TextEditingController(text: ''),
+              if (!_selectedInsumos.any((insumo) => insumo['ins_id'] == suggestion['ins_id'])) {
+                setState(() {
+                  _selectedInsumos.add({
+                    'ins_desc': suggestion['ins_desc'],
+                    'ins_id': suggestion['ins_id'],
+                    'inst_cant': 0.0,
+                    'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                  });
+                  _insumoController.clear();
                 });
-                _insumoController.clear();
-              });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Este insumo ya está agregado")),
+                );
+              }
             },
           ),
           const SizedBox(height: 15),
-          // Campo para agregar un insumo nuevo manualmente
           TextFormField(
             controller: _newInsumoController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: "Nuevo insumo",
               hintText: "Agregar nuevo insumo",
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add, color: Colors.green),
+                onPressed: () {
+                  if (_newInsumoController.text.isNotEmpty) {
+                    setState(() {
+                      _selectedInsumos.add({
+                        'ins_desc': _newInsumoController.text,
+                        'ins_id': -1, // Indica que es un nuevo insumo
+                        'inst_cant': 0.0,
+                        'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                      });
+                      _newInsumoController.clear();
+                    });
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("El nombre del insumo no puede estar vacío")),
+                    );
+                  }
+                },
+              ),
             ),
-            onFieldSubmitted: (value) {
-              if (value.isNotEmpty) {
-                setState(() {
-                  var datos = {
-                    'ins_desc': value,
-                    'ins_id': -1, // Asignamos un valor único para indicar que es nuevo
-                    'inst_cant': 0.0,
-                    'controller': TextEditingController(text: ''),
-                  };
-                  
-                  // Add the map directly to the list
-                  _selectedInsumos.add(datos);  // Adding the map to the list directly
-
-                  _newInsumoController.clear();
-                });
-              }
-
-            },
           ),
           const SizedBox(height: 15),
           if (_selectedInsumos.isNotEmpty)
@@ -402,8 +402,8 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                           width: 80,
                           child: TextFormField(
                             controller: cantidadController,
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
                               hintText: '0.0',
                               border: OutlineInputBorder(),
                             ),
@@ -417,7 +417,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       ],
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                       onPressed: () {
                         setState(() {
                           _selectedInsumos.remove(insumo);
@@ -542,6 +542,38 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     );
   }
   
+  Widget _buildResponsableDropdown(ActivityProvider activityProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Responsable",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        activityProvider.isLoadingUsuarios
+            ? const Center(child: CircularProgressIndicator())
+            : DropdownButtonFormField<int>(
+                value: _ussId,
+                decoration: const InputDecoration(
+                  labelText: "Selecciona un responsable",
+                  border: OutlineInputBorder(),
+                ),
+                items: activityProvider.usuarios.map<DropdownMenuItem<int>>((usuario) {
+                  return DropdownMenuItem(
+                    value: usuario["uss_id"],
+                    child: Text(usuario["uss_nombre"] ?? "Sin nombre"),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _ussId = value;
+                  });
+                },
+              ),
+      ],
+    );
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -566,6 +598,19 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         return 3;
       default:
         return 1;
+    }
+  }
+
+  String _getActivityStateString(int state) {
+    switch (state) {
+      case 1:
+        return 'Pendiente';
+      case 2:
+        return 'En progreso';
+      case 3:
+        return 'Finalizada';
+      default:
+        return 'Desconocido';
     }
   }
 }

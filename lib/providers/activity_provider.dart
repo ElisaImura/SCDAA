@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:mspaa/services/api_service.dart';
 
@@ -13,7 +15,9 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _actividadesRecientes = [];
   List<Map<String, dynamic>> _tareas = [];
   List<Map<String, dynamic>> _ciclosActivos = [];
+  List<Map<String, dynamic>> _usuarios = [];
 
+  bool _isLoadingUsuarios = false;
   bool isLoading = true;
   bool isLoadingVariedades = false;
   
@@ -29,6 +33,8 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get actividadesRecientes => _actividadesRecientes;
   List<Map<String, dynamic>> get tareas => _tareas;
   List<Map<String, dynamic>> get ciclosActivos => _ciclosActivos;
+  List<Map<String, dynamic>> get usuarios => _usuarios;
+  bool get isLoadingUsuarios => _isLoadingUsuarios;
 
   ActivityProvider() {
     _initData();
@@ -265,8 +271,6 @@ class ActivityProvider extends ChangeNotifier {
     try {
       final updatedActivity = await ApiService().fetchActivityById(actId);
 
-      print("Respuesta API en Provider: $updatedActivity"); // ✅ Verifica qué devuelve la API
-
       if (updatedActivity != null) {
         actividadActual = updatedActivity;
         notifyListeners(); // ✅ Notifica cambios
@@ -296,4 +300,20 @@ class ActivityProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  // 🔹 Obtener usuarios desde la API
+  Future<void> fetchUsuarios() async {
+    _isLoadingUsuarios = true;
+    notifyListeners();
+
+    try {
+      _usuarios = await _apiService.fetchUsuarios();
+    } catch (e) {
+      print("Error al obtener usuarios: $e");
+    }
+
+    _isLoadingUsuarios = false;
+    notifyListeners();
+  }
+
 }

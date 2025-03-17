@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -527,6 +529,35 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
         print("Error en la conexión a la API: $e");
       }
       return false;
+    }
+  }
+
+  // 🔹 Obtener lista de usuarios
+  Future<List<Map<String, dynamic>>> fetchUsuarios() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString("auth_token");
+
+    if (token == null) {
+      throw Exception("Token no encontrado. Inicia sesión nuevamente.");
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/usuarios"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> usuarios = json.decode(response.body);
+        return usuarios.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception("Error al obtener usuarios: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error en la conexión: $e");
     }
   }
 }

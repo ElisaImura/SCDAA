@@ -39,16 +39,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   @override
   void initState() {
     super.initState();
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    activityProvider.fetchCiclosActivos();
-    _getUserId();
-  }
-
-  Future<void> _getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _ussId = prefs.getInt("uss_id") ?? 1;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+      activityProvider.fetchCiclosActivos();
+      activityProvider.fetchUsuarios();
     });
+    
+    _ussId = null;
   }
 
   void _changeActivityState(String newState) {
@@ -114,6 +112,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     _buildCicloDropdown(activityProvider),
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
+                    const SizedBox(height: 20),
+                    _buildResponsableDropdown(activityProvider),
                     const SizedBox(height: 20),
                     // Solo mostramos la sección de densidad si el tipo de actividad es "Siembra"
                     if (_selectedTipoActividad == "3") _buildDensidadField(),
@@ -243,32 +243,33 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             },
           ),
           const SizedBox(height: 15),
-          // Campo para agregar un insumo nuevo manualmente
           TextFormField(
             controller: _newInsumoController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: "Nuevo insumo",
               hintText: "Agregar nuevo insumo",
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add, color: Colors.green),
+                onPressed: () {
+                  if (_newInsumoController.text.isNotEmpty) {
+                    setState(() {
+                      _selectedInsumos.add({
+                        'ins_desc': _newInsumoController.text,
+                        'ins_id': -1, // Identificador único para nuevos insumos
+                        'inst_cant': 0.0,
+                        'controller': TextEditingController(text: ''),
+                      });
+                      _newInsumoController.clear();
+                    });
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("El nombre del insumo no puede estar vacío")),
+                    );
+                  }
+                },
+              ),
             ),
-            onFieldSubmitted: (value) {
-              if (value.isNotEmpty) {
-                setState(() {
-                  var datos = {
-                    'ins_desc': value,
-                    'ins_id': -1, // Asignamos un valor único para indicar que es nuevo
-                    'inst_cant': 0.0,
-                    'controller': TextEditingController(text: ''),
-                  };
-                  
-                  // Add the map directly to the list
-                  _selectedInsumos.add(datos);  // Adding the map to the list directly
-
-                  _newInsumoController.clear();
-                });
-              }
-
-            },
           ),
           const SizedBox(height: 15),
           if (_selectedInsumos.isNotEmpty)
@@ -289,8 +290,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                           width: 80,
                           child: TextFormField(
                             controller: cantidadController,
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
                               hintText: '0.0',
                               border: OutlineInputBorder(),
                             ),
@@ -304,7 +305,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       ],
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                       onPressed: () {
                         setState(() {
                           _selectedInsumos.remove(insumo);
@@ -546,9 +547,41 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
-  
+  Widget _buildResponsableDropdown(ActivityProvider activityProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Responsable",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        activityProvider.isLoadingUsuarios
+            ? const Center(child: CircularProgressIndicator())
+            : DropdownButtonFormField<int>(
+                value: _ussId,  // Ahora _ussId es int o null
+                decoration: const InputDecoration(
+                  labelText: "Selecciona un responsable",
+                  border: OutlineInputBorder(),
+                ),
+                items: activityProvider.usuarios.map<DropdownMenuItem<int>>((usuario) {
+                  return DropdownMenuItem<int>(
+                    value: usuario["uss_id"] as int,
+                    child: Text(usuario["uss_nombre"] ?? "Sin nombre"),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  Future.microtask(() {
+                    setState(() {
+                      _ussId = value;
+                    });
+                  });
+                },
+              ),
+      ],
+    );
+  }
 }
-
 
 Color _getStatusColor(String status) {
   switch (status) {

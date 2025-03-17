@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/screens/forms/edit_activity_screen.dart';
@@ -56,7 +58,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             : "Finalizado";
     String descripcion = actividadActual['act_desc'] ?? "No hay detalles disponibles.";
     String ciclo = (actividadActual['ciclo'] != null && actividadActual['ciclo']['ci_id'] != null)
-        ? "Ciclo: ${actividadActual['ciclo']['ci_id']}"
+        ? "Ciclo: ${actividadActual['ciclo']['datos_ciclo']['ci_nombre']}"
         : "Sin ciclo";
     String lote = (actividadActual['ciclo'] != null && actividadActual['ciclo']['lote'] != null)
         ? actividadActual['ciclo']['lote']['lot_nombre']
