@@ -19,21 +19,52 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
   bool _mostrarTodas = false;
+  bool _isFirstLoad = true; // Variable para evitar múltiples cargas innecesarias
 
   @override
   void initState() {
     super.initState();
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day);
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final calendarProvider = Provider.of<CalendarProvider>(context, listen: false);
-      calendarProvider.fetchData().then((_) {
-        setState(() {
-          _selectedDay = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-        });
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    if (_isFirstLoad) {
+      _isFirstLoad = false;
+
+      // ✅ Asegura que `fetchData()` se ejecute después de que el widget se haya construido
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchData();
       });
-    });
+    }
+  }
+
+  void _fetchData() async {
+    final calendarProvider = Provider.of<CalendarProvider>(context, listen: false);
+    await calendarProvider.fetchData();
+
+    if (mounted) {
+      setState(() {
+        _selectedDay = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      });
+    }
+  }
+
+  void _navigateToActivityDetail(Map<String, dynamic> actividad) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ActivityDetailScreen(actividad: actividad),
+      ),
+    );
+
+    if (result == true) {
+      // ✅ Si se modificó la actividad, recargar el calendario
+      _fetchData();
+    }
   }
 
   @override
@@ -161,36 +192,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             leading: const Icon(Icons.event, color: Color.fromARGB(255, 45, 97, 47)),
             title: Text(tipoActividad),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            onTap: () {
-              List<dynamic> insumos = actividad['ciclo']?['insumos'] ?? [];
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ActivityDetailScreen(
-                    titulo: actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin título",
-                    fecha: actividad['act_fecha'] ?? "Fecha desconocida",
-                    estado: (actividad['act_estado'] == 1)
-                        ? "Pendiente"
-                        : (actividad['act_estado'] == 2)
-                            ? "En curso"
-                            : "Completado",
-                    descripcion: actividad['act_desc'] ?? "No hay detalles disponibles.",
-                    ciclo: (actividad['ciclo'] != null && actividad['ciclo']['ci_id'] != null)
-                        ? "Ciclo: ${actividad['ciclo']['ci_id']}"
-                        : "Sin ciclo",
-                    lote: (actividad['ciclo'] != null && actividad['ciclo']['lote'] != null)
-                        ? actividad['ciclo']['lote']['lot_nombre']
-                        : "Sin lote",
-                    insumos: insumos.map((insumo) {
-                      return {
-                        "ins_desc": insumo["ins_desc"],
-                        "ins_cant": insumo.containsKey("ins_cant") ? insumo["ins_cant"].toString() : "No especificado",
-                      };
-                    }).toList(),
-                  ),
-                ),
-              );
-            },
+            onTap: () => _navigateToActivityDetail(actividad),
           );
         } else {
           return Padding(

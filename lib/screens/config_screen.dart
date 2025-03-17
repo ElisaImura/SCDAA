@@ -12,20 +12,15 @@ class ConfigScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildSectionTitle('Gestión de Datos'),
-          _buildListTile(Icons.backup, 'Copias de Seguridad', 'Crear o restaurar copias', () {}),
-          _buildListTile(Icons.delete, 'Eliminar Datos', 'Eliminar registros antiguos', () {}),
-          
           _buildSectionTitle('Configuración de Actividades Agrícolas'),
           _buildListTile(Icons.agriculture, 'Tipos de Cultivo', 'Personalizar cultivos', () {}),
           _buildListTile(Icons.local_florist, 'Variedades de Cultivo', 'Configurar variedades específicas', () {}),
           _buildListTile(Icons.inventory, 'Insumos', 'Administrar insumos utilizados', () {}),
-          _buildListTile(Icons.map, 'Ubicación de Lotes', 'Definir áreas de producción', () {}),
-          _buildListTile(Icons.notifications, 'Notificaciones', 'Ajustar recordatorios', () {}),
+          _buildListTile(Icons.map, 'Lotes', 'Definir áreas de producción', () {}),
           
           _buildSectionTitle('Gestión de Usuarios y Permisos'),
-          _buildListTile(Icons.people, 'Administrar Empresas y Usuarios', 'Gestionar accesos', () {}),
-          _buildListTile(Icons.lock, 'Roles y Permisos', 'Configurar privilegios', () {}),
+          _buildListTile(Icons.people, 'Administrar Usuarios', 'Gestionar accesos', () {}),
+          _buildListTile(Icons.lock, 'Permisos', 'Configurar privilegios', () {}),
           
           _buildSectionTitle('Información del Usuario'),
           _buildListTile(Icons.person, 'Nombre de Usuario', 'Modificar nombre de usuario', () {}),

@@ -105,21 +105,19 @@ class ApiService {
     return actividades;
   }
 
-  /// 🔹 Obtener los ciclos activos (sin `ci_fechafin`)
-  Future<List<Map<String, dynamic>>> fetchCiclos() async {
+  /// 🔹 Obtener un ciclo específico
+  Future<Map<String, dynamic>> fetchCicloSpecific(int id) async {
     final String? token = await _getToken();
+    
     final response = await http.get(
-      Uri.parse("$baseUrl/ciclos"),
+      Uri.parse("$baseUrl/ciclos/$id"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
       },
     );
 
-    return _handleResponse(response)
-        .where((ciclo) => ciclo["ci_fechafin"] == null) // ✅ Solo ciclos activos
-        .toList()
-        .cast<Map<String, dynamic>>();
+    return _handleResponse(response) as Map<String, dynamic>;
   }
 
   /// 🔹 Obtener los lotes
@@ -473,6 +471,62 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       }
     } catch (e) {
       throw Exception('Error al obtener los datos del clima: $e');
+    }
+  }
+
+  // 🔹 Obtener una actividad específica por su ID
+  Future<Map<String, dynamic>?> fetchActivityById(int actId) async {
+    final String? token = await _getToken();
+
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/actividades/$actId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print("Error al obtener la actividad: ${response.body}");
+      }
+    } catch (e) {
+      print("Error en la conexión a la API: $e");
+    }
+    return null;
+  }
+
+  // Función para actualizar la actividad
+  Future<bool> updateActivity(Map<String, dynamic> activityData) async {
+    final String? token = await _getToken();  // Asegúrate de tener la función para obtener el token
+
+    try {
+      final response = await http.put(
+        Uri.parse("$baseUrl/actividades/${activityData['act_id']}"),  // Usa el `act_id` para identificar la actividad
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: json.encode(activityData),  // Envía los datos de la actividad a actualizar
+      );
+
+      if (response.statusCode == 200) {
+        // Si el servidor responde con éxito, la actividad se actualiza correctamente
+        return true;
+      } else {
+        // Si algo falla en la actualización
+        if (kDebugMode) {
+          print("Error al actualizar la actividad: ${response.body}");
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error en la conexión a la API: $e");
+      }
+      return false;
     }
   }
 }

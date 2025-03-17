@@ -16,6 +16,9 @@ class ActivityProvider extends ChangeNotifier {
 
   bool isLoading = true;
   bool isLoadingVariedades = false;
+  
+  Map<String, dynamic>? ciclo;
+  Map<String, dynamic>? actividadActual;
 
   List<Map<String, dynamic>> get ciclos => _ciclos;
   List<Map<String, dynamic>> get tiposActividades => _tiposActividades;
@@ -40,7 +43,7 @@ class ActivityProvider extends ChangeNotifier {
   /// 🔹 Cargar ciclos y tipos de actividades
   Future<void> _fetchCiclosYActividades() async {
     try {
-      _ciclos = await _apiService.fetchCiclos();
+      _ciclos = await _apiService.fetchCiclosActivos();
       _tiposActividades = await _apiService.fetchTiposActividades();
       isLoading = false;
       notifyListeners();
@@ -169,6 +172,16 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  // 🔹 Cargar un ciclo específico
+  Future<void> fetchCicloEspecifico(int id) async {
+    try {
+      ciclo = await _apiService.fetchCicloSpecific(id); // ✅ Llamada correcta con ID
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener el ciclo específico: $e");
+    }
+  }
+
   /// 🔹 Cargar las últimas 3 actividades registradas, ordenadas por la fecha de actividad
   Future<void> fetchActividadesRecientes() async {
     try {
@@ -244,6 +257,43 @@ class ActivityProvider extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) print("❌ Error al agregar insumo nuevo en ActivityProvider: $e");
       return [];
+    }
+  }
+
+  // 🔹 Método para obtener la actividad desde la API
+  Future<Map<String, dynamic>?> fetchActivityById(int actId) async {
+    try {
+      final updatedActivity = await ApiService().fetchActivityById(actId);
+
+      print("Respuesta API en Provider: $updatedActivity"); // ✅ Verifica qué devuelve la API
+
+      if (updatedActivity != null) {
+        actividadActual = updatedActivity;
+        notifyListeners(); // ✅ Notifica cambios
+        return updatedActivity;
+      }
+    } catch (e) {
+      print("Error al obtener actividad: $e");
+    }
+    return null;
+  }
+
+  // 🔹 Método para actualizar una actividad
+  Future<bool> updateActivity(Map<String, dynamic> activityData) async {
+    try {
+      final success = await ApiService().updateActivity(activityData);
+
+      if (success) {
+        // Recargar la actividad actualizada
+        await fetchActivityById(activityData["act_id"]);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) {
+        print("❌ Error al actualizar la actividad: $e");
+      }
+      return false;
     }
   }
 }
