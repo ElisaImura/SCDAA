@@ -560,4 +560,40 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       throw Exception("Error en la conexión: $e");
     }
   }
+
+  Future<Map<String, dynamic>> getUserInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString("auth_token");
+
+      if (token == null) {
+        throw Exception("Token no encontrado. Inicia sesión nuevamente.");
+      }
+
+      // Obtenemos el ID del usuario antes de hacer la solicitud
+      final int? userId = await getLoggedUserId();  // Asegúrate de usar await aquí
+
+      if (userId == null) {
+        throw Exception("ID de usuario no encontrado.");
+      }
+
+      // Realizamos la solicitud a la API
+      final response = await http.get(
+        Uri.parse("$baseUrl/usuarios/$userId"), // Asegúrate de usar el ID real
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body); // Retorna los datos del usuario
+      } else {
+        throw Exception("Error al obtener datos del usuario: ${response.body}");
+      }
+    } catch (e) {
+      print("Error en getUserInfo(): $e");
+      return {}; // Retorna un mapa vacío en caso de error
+    }
+  }
 }
