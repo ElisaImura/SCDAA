@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:provider/provider.dart';
@@ -116,7 +117,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       },
                       items: <String>['Pendiente', 'En progreso', 'Finalizada']
                           .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(value: _getActivityStateString(widget.activityData['act_estado']), child: Text(value));
+                        return DropdownMenuItem<String>(value: _activityState, child: Text(value));
                       }).toList(),
                     ),
                   );
@@ -124,9 +125,12 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               );
 
               if (newState != null) {
-                setState(() {
-                  _activityState = newState;
-                });
+                if (mounted) { // Verificar si el widget aún está montado
+                  setState(() {
+                    activityProvider.fetchActividadesRecientes();
+                    activityProvider.fetchTareas();
+                  });
+                }
               }
             },
             child: Padding(
@@ -172,6 +176,26 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   }
 
   Widget _buildSaveButton() {
+    void onSaveSuccess(BuildContext context) {
+      // Recargar las actividades y tareas después de guardar la actividad
+      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+      if (mounted) {
+        activityProvider.fetchActividadesRecientes();
+        activityProvider.fetchTareas(); 
+      }
+
+      // Mostrar un mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Actividad actualizada con éxito")));
+
+      // Navegar a la pantalla de inicio después de un pequeño retraso
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) { // Verificar si el widget sigue montado
+          Navigator.pop(context, true);  // Volver a la pantalla de detalles enviando `true`
+          GoRouter.of(context).go('/home'); // Redirigir al home
+        }
+      });
+    }
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -179,6 +203,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           if (_formKey.currentState!.validate() &&
               _selectedCiclo != null &&
               _selectedTipoActividad != null) {
+            
             Map<String, dynamic> activityData = {
               "act_id": widget.activityData["act_id"],
               "tpAct_id": int.parse(_selectedTipoActividad!),
@@ -186,9 +211,10 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               "act_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
               "act_desc": _descripcionController.text,
               "act_estado": _getActivityStateValue(_activityState),
-              "uss_id": 1
+              "uss_id": _ussId // Asegúrate de que este valor esté correctamente asignado
             };
 
+            // Añadir más datos según el tipo de actividad
             if (_selectedTipoActividad == "3" && _densidadController.text.isNotEmpty) {
               activityData['sie_densidad'] = _densidadController.text;
             }
@@ -207,6 +233,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               }
             }
 
+            // Añadir los insumos seleccionados
             if (_selectedInsumos.isNotEmpty) {
               activityData['insumos'] = _selectedInsumos.map((insumo) {
                 return {
@@ -217,20 +244,10 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               }).toList();
             }
 
-            print(activityData);
-
             bool success = await Provider.of<ActivityProvider>(context, listen: false).updateActivity(activityData);
 
             if (success) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Actividad actualizada con éxito"))
-              );
-
-              await Future.delayed(const Duration(milliseconds: 500)); // Esperar un poco
-
-              if (mounted) {
-                Navigator.pop(context, true);  // ✅ Volver a la pantalla de detalles enviando `true`
-              }
+              onSaveSuccess(context); // Llamar a la función de éxito
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Error al actualizar la actividad"))
@@ -242,7 +259,6 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       ),
     );
   }
-
   
   Widget _buildDatePicker() {
     return ListTile(
@@ -256,9 +272,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           lastDate: DateTime(2030),
         );
         if (pickedDate != null) {
-          setState(() {
-            _selectedDate = pickedDate;
-          });
+          if (mounted) { // Verificar si el widget aún está montado
+            setState(() {
+              _selectedDate = pickedDate;
+            });
+          }
         }
       },
     );
@@ -311,9 +329,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         );
       }).toList(),
       onChanged: (value) {
-        setState(() {
-          _selectedTipoActividad = value;
-        });
+        if (mounted) { // Verificar si el widget aún está montado
+          setState(() {
+            _selectedTipoActividad = value;
+          });
+        }
       },
     );
   }
@@ -338,15 +358,17 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
             },
             onSelected: (suggestion) {
               if (!_selectedInsumos.any((insumo) => insumo['ins_id'] == suggestion['ins_id'])) {
-                setState(() {
-                  _selectedInsumos.add({
-                    'ins_desc': suggestion['ins_desc'],
-                    'ins_id': suggestion['ins_id'],
-                    'inst_cant': 0.0,
-                    'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                if (mounted) { // Verificar si el widget aún está montado
+                  setState(() {
+                    _selectedInsumos.add({
+                      'ins_desc': suggestion['ins_desc'],
+                      'ins_id': suggestion['ins_id'],
+                      'inst_cant': 0.0,
+                      'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                    });
+                    _insumoController.clear();
                   });
-                  _insumoController.clear();
-                });
+                }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Este insumo ya está agregado")),
@@ -365,15 +387,17 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                 icon: const Icon(Icons.add, color: Colors.green),
                 onPressed: () {
                   if (_newInsumoController.text.isNotEmpty) {
-                    setState(() {
-                      _selectedInsumos.add({
-                        'ins_desc': _newInsumoController.text,
-                        'ins_id': -1, // Indica que es un nuevo insumo
-                        'inst_cant': 0.0,
-                        'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                    if (mounted) { // Verificar si el widget aún está montado
+                      setState(() {
+                        _selectedInsumos.add({
+                          'ins_desc': _newInsumoController.text,
+                          'ins_id': -1, // Indica que es un nuevo insumo
+                          'inst_cant': 0.0,
+                          'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
+                        });
+                        _newInsumoController.clear();
                       });
-                      _newInsumoController.clear();
-                    });
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("El nombre del insumo no puede estar vacío")),
@@ -408,9 +432,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                               border: OutlineInputBorder(),
                             ),
                             onChanged: (value) {
-                              setState(() {
-                                insumo['inst_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
-                              });
+                              if (mounted) { // Verificar si el widget aún está montado
+                                setState(() {
+                                  insumo['inst_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
+                                });
+                              }
                             },
                           ),
                         ),
@@ -419,9 +445,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                       onPressed: () {
-                        setState(() {
-                          _selectedInsumos.remove(insumo);
-                        });
+                        if (mounted) { // Verificar si el widget aún está montado
+                          setState(() {
+                            _selectedInsumos.remove(insumo);
+                          });
+                        }
                       },
                     ),
                   );
@@ -534,9 +562,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           DropdownMenuItem(value: 5, child: Text("Excelente")),
         ],
         onChanged: (value) {
-          setState(() {
-            _conVigor = value!;
-          });
+          if (mounted) { // Verificar si el widget aún está montado
+            setState(() {
+              _conVigor = value;
+            });
+          }
         },
       ),
     );
@@ -554,7 +584,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         activityProvider.isLoadingUsuarios
             ? const Center(child: CircularProgressIndicator())
             : DropdownButtonFormField<int>(
-                value: _ussId,
+                value: _ussId, // Asegúrate de que el valor se está actualizando correctamente
                 decoration: const InputDecoration(
                   labelText: "Selecciona un responsable",
                   border: OutlineInputBorder(),
@@ -566,9 +596,12 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _ussId = value;
-                  });
+                  if (mounted) { // Verificar si el widget aún está montado
+                    setState(() {
+                      _ussId = value;
+                      print('Usuario seleccionado: $_ussId');
+                    });
+                  }
                 },
               ),
       ],

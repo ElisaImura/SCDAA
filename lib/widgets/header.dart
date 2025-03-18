@@ -10,20 +10,31 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
   const Header({super.key});
 
   void _logout(BuildContext context) async {
-    // Lógica para cerrar sesión
-    final ApiService apiService = ApiService();
-    await apiService.logout();
-
+    // Mostrar mensaje de logout
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Cerrando sesión...")),
     );
 
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // Llamamos a la función logout del API
+    final ApiService apiService = ApiService();
+    await apiService.logout();
+
+    // Usamos addPostFrameCallback para asegurarnos de que la redirección se ejecute después de cerrar sesión
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (context.mounted) {
-        Navigator.pop(context); // Cierra el menú
-        GoRouter.of(context).replace('/login'); // Redirige a login
+        final currentLocation = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath;
+
+        // Asegurarse de que no estemos ya en la pantalla de login
+        if (currentLocation != '/login') {
+          GoRouter.of(context).replace('/login'); // Usar replace para evitar que el usuario pueda volver atrás
+        }
       }
     });
+
+    // Cierra el menú lateral si está abierto
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   void _openSideMenu(BuildContext context) {

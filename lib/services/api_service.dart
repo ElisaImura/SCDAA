@@ -596,4 +596,33 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       return {}; // Retorna un mapa vacío en caso de error
     }
   }
+
+  Future<Map<String, dynamic>> getUserByID(int id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString("auth_token");
+
+      if (token == null) {
+        throw Exception("Token no encontrado. Inicia sesión nuevamente.");
+      }
+
+      // Realizamos la solicitud a la API
+      final response = await http.get(
+        Uri.parse("$baseUrl/usuarios/$id"), // Asegúrate de usar el ID real
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body); // Retorna los datos del usuario
+      } else {
+        throw Exception("Error al obtener datos del usuario: ${response.body}");
+      }
+    } catch (e) {
+      print("Error en getUserInfo(): $e");
+      return {}; // Retorna un mapa vacío en caso de error
+    }
+  }
 }

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/activity_provider.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/screens/forms/edit_activity_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -21,11 +22,34 @@ class ActivityDetailScreen extends StatefulWidget {
 
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   late Map<String, dynamic> actividadActual; // Para almacenar los datos actualizados
+  String responsable = "Cargando...";
 
   @override
   void initState() {
     super.initState();
     actividadActual = widget.actividad; // Inicializamos con los datos actuales
+  
+    // Verificar si existe uss_id en el ciclo y hacer la llamada para obtener los datos del responsable
+    if (actividadActual['ciclo'] != null && actividadActual['ciclo']['uss_id'] != null) {
+      final ussId = actividadActual['ciclo']['uss_id'];
+      Future.delayed(Duration.zero, () => _fetchResponsable(ussId));
+    }
+
+  }
+
+  void _fetchResponsable(int ussId) async {
+    final usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    
+    // Llamamos al método para obtener los datos del usuario
+    await usersProvider.fetchUserByID(ussId);
+
+    // Después de obtener el usuario, actualizar la UI
+    if (mounted) {
+      setState(() {
+        // El responsable se establece desde el provider
+        responsable = usersProvider.userData?['uss_nombre'] ?? "Responsable no asignado";
+      });
+    }
   }
 
   void _navigateToEditActivity() async {
@@ -116,6 +140,14 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 const Icon(Icons.map, color: Colors.grey),
                 const SizedBox(width: 8),
                 Text("Lote: $lote", style: const TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.person, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text("Responsable: $responsable", style: const TextStyle(fontSize: 16)),
               ],
             ),
             const SizedBox(height: 20),

@@ -16,10 +16,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
     activityProvider.fetchCiclosActivos();
     activityProvider.fetchActividadesRecientes();
     activityProvider.fetchTareas();
+  }
+
+  void _loadData() async {
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    await activityProvider.fetchCiclosActivos();
+    await activityProvider.fetchActividadesRecientes();
+    await activityProvider.fetchTareas();
+    if (mounted) { // Verificar si el widget aún está montado
+      setState(() {});
+    }
   }
 
   @override
@@ -78,9 +89,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (proximasTareas.length > 3)
                           TextButton(
                             onPressed: () {
-                              setState(() {
-                                mostrarTodasLasTareas = !mostrarTodasLasTareas;
-                              });
+                              if (mounted) { // Verificar si el widget aún está montado
+                                setState(() {
+                                  mostrarTodasLasTareas = !mostrarTodasLasTareas;
+                                });
+                              }
                             },
                             child: Text(mostrarTodasLasTareas ? "Mostrar menos" : "Mostrar más"),
                           ),

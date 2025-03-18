@@ -62,8 +62,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
 
     if (result == true) {
-      // ✅ Si se modificó la actividad, recargar el calendario
-      _fetchData();
+      if (mounted) {
+        _fetchData();
+      }
     }
   }
 
@@ -88,16 +89,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     return calendarProvider.events[fechaNormalizada] ?? [];
                   },
                   onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                      _mostrarTodas = false;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                        _mostrarTodas = false;
+                      });
+                    }
                   },
                   onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _calendarFormat = format;
+                      });
+                    }
                   },
                   calendarStyle: CalendarStyle(
                     todayDecoration: BoxDecoration(
@@ -199,9 +204,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             padding: const EdgeInsets.only(bottom: 5.0),
             child: TextButton(
               onPressed: () {
-                setState(() {
-                  _mostrarTodas = !_mostrarTodas;
-                });
+                if (mounted) {
+                  setState(() {
+                    _mostrarTodas = !_mostrarTodas;
+                  });
+                }
               },
               child: Text(_mostrarTodas ? "Mostrar menos" : "Mostrar más"),
             ),
