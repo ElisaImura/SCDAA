@@ -625,4 +625,92 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       return {}; // Retorna un mapa vacío en caso de error
     }
   }
+
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    final String? token = await _getToken();
+
+    if (token == null) {
+      throw Exception('Token is missing. Please log in again.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/usuarios'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else if (response.statusCode == 401) {
+      // Token expired or invalid
+      throw Exception('Session expired. Please log in again.');
+    } else {
+      throw Exception('Failed to load users');
+    }
+  }
+
+  Future<bool> updateUser(int userId, String name, String email, String role) async {
+    final String? token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/usuarios/$userId'),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "uss_nombre": name,
+        "uss_email": email,
+        "rol_desc": role,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true; // La actualización fue exitosa
+    } else {
+      return false; // Hubo un error
+    }
+  }
+
+  // Función para obtener los roles desde la API
+  Future<List<Map<String, dynamic>>> getRoles() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/roles'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load roles');
+    }
+  }
+
+  Future<bool> deleteUser(int userId) async {
+    final String? token = await _getToken();
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/usuarios/$userId'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return true;  // Usuario eliminado con éxito
+      } else {
+        throw Exception('Error al eliminar el usuario');
+      }
+    } catch (e) {
+      print("Error al eliminar usuario: $e");
+      return false;
+    }
+  }
 }

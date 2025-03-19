@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
-import 'package:mspaa/screens/other_views/act_detail_screen.dart';
+import 'package:mspaa/screens/views/act_detail_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:weather_icons/weather_icons.dart';
 

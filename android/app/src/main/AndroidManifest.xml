@@ -2,7 +2,8 @@
     <application
         android:label="mspaa"
         android:hardwareAccelerated="false"
-        android:largeHeap="true">
+        android:largeHeap="true"
+        android:enableOnBackInvokedCallback="true">
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

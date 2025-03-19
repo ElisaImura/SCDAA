@@ -7,8 +7,10 @@ import 'package:mspaa/screens/forms/add_weather_screen.dart';
 import 'package:mspaa/screens/main/home_screen.dart';
 import 'package:mspaa/screens/login_screen.dart';
 import 'package:mspaa/screens/main/reports_screen.dart';
+import 'package:mspaa/screens/views/users_view.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
+import 'package:mspaa/screens/forms/edit_user_view.dart';
 
 class AppRouter {
   static GoRouter getRouter(bool isLoggedIn) {
@@ -50,6 +52,17 @@ class AppRouter {
         GoRoute(
           path: '/add-weather',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const AddWeatherScreen())),
+        ),
+        GoRoute(
+          path: '/usuarios',
+          pageBuilder: (context, state) => NoTransitionPage(child: const UsersView()),
+        ),
+        GoRoute(
+          path: '/usuarios/edit',
+          pageBuilder: (context, state) {
+            final user = state.extra as Map<String, dynamic>;
+            return NoTransitionPage(child: EditUserView(user: user));
+          },
         ),
       ],
     );
