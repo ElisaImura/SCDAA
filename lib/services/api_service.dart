@@ -414,6 +414,8 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
           body: jsonEncode(insumo),  // Enviamos solo el insumo
         );
 
+        print(jsonEncode(insumo));  
+
         // Verificar si el insumo se guardó correctamente
         if (response.statusCode == 201) {
           // Si el insumo se guarda correctamente, obtenemos los datos del insumo guardado

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditActivityScreen extends StatefulWidget {
   final Map<String, dynamic> activityData;
@@ -25,6 +26,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   final TextEditingController _cosRendiController = TextEditingController();
   final TextEditingController _cosHumeController = TextEditingController();
   final TextEditingController _conCantController = TextEditingController();
+  final TextEditingController _unidadController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedCiclo;
@@ -88,7 +90,8 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         _selectedInsumos.add({
           'ins_desc': insumo['ins_desc'],
           'ins_id': insumo['ins_id'],
-          'inst_cant': insumo['ins_cant'],
+          'ins_cant': insumo['ins_cant'],
+          'ins_unidad_medida': insumo['ins_unidad_medida'], // Add unidad de medida
           'controller': TextEditingController(text: insumo['ins_cant'].toString()), // ✅ Controlador para cantidad
         });
       }
@@ -203,55 +206,115 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           if (_formKey.currentState!.validate() &&
               _selectedCiclo != null &&
               _selectedTipoActividad != null) {
+
+            // 1. Guardar los insumos nuevos primero
+            List<Map<String, dynamic>> insumosData = [];
+            List<Map<String, dynamic>> insumosNuevos = [];
+
+            double? cosRendi = _selectedTipoActividad == "6" ? double.tryParse(_cosRendiController.text) : null;
+            double? cosHume = _selectedTipoActividad == "6" ? double.tryParse(_cosHumeController.text) : null;
+            int? conCant = _selectedTipoActividad == "4" ? int.tryParse(_conCantController.text) : null;
             
+            // Filtrar insumos nuevos (con ins_id == -1)
+            for (var insumo in _selectedInsumos) {
+              if (insumo['ins_id'] == -1) {
+                // Es un insumo nuevo, lo agregamos a la lista de insumos nuevos
+                insumosNuevos.add({
+                  'ins_desc': insumo['ins_desc'],
+                  'ins_cant': insumo['ins_cant'] ?? 0.0,
+                  'ins_unidad_medida': insumo['ins_unidad_medida'],
+                });
+              } else {
+                // Es un insumo ya existente, lo agregamos a los insumosData
+                insumosData.add({
+                  'ins_id': insumo['ins_id'],
+                  'ins_cant': insumo['ins_cant'] ?? 0.0,
+                });
+              }
+            }
+
+            // Si hay insumos nuevos, los guardamos primero
+            if (insumosNuevos.isNotEmpty) {
+              List<Map<String, dynamic>> insumosGuardados = await Provider.of<ActivityProvider>(context, listen: false)
+                  .addInsumoNuevo(insumosNuevos);  // Llamamos a la función para guardar los insumos nuevos
+
+              if (insumosGuardados.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Error al guardar los insumos nuevos")));
+                return;
+              }
+
+              // Agregamos los insumos nuevos con sus ids a la lista de insumos que se enviará a la actividad
+              for (var insumoNuevo in insumosNuevos) {
+                // Comparamos el insumoNuevo con los insumos guardados para obtener el ins_id
+                for (var insumoGuardado in insumosGuardados) {
+                  if (insumoNuevo['ins_desc'] == insumoGuardado['ins_desc']) {
+                    insumosData.add({
+                      'ins_id': insumoGuardado['ins_id'],  // Asignamos el ins_id recuperado
+                      'ins_cant': insumoNuevo['ins_cant'],  // Asignamos la cantidad del insumo nuevo
+                      'ins_unidad_medida': insumoGuardado['ins_unidad_medida'],  // Asignamos la unidad de medida
+                    });
+                  }
+                }
+              }
+            }
+
+            //Mapeamos el estado a su valor numérico
+            int activityState = _getActivityStateValue(_activityState);
+
+            // 2. Crear el objeto de actividad
             Map<String, dynamic> activityData = {
               "act_id": widget.activityData["act_id"],
               "tpAct_id": int.parse(_selectedTipoActividad!),
               "ci_id": int.parse(_selectedCiclo!),
               "act_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
               "act_desc": _descripcionController.text,
-              "act_estado": _getActivityStateValue(_activityState),
-              "uss_id": _ussId // Asegúrate de que este valor esté correctamente asignado
+              "act_estado": activityState,
+              "uss_id": _ussId
             };
 
-            // Añadir más datos según el tipo de actividad
-            if (_selectedTipoActividad == "3" && _densidadController.text.isNotEmpty) {
+            //Agrega datos de siembra
+            if (_densidadController.text.isNotEmpty) {
               activityData['sie_densidad'] = _densidadController.text;
             }
 
-            if (_selectedTipoActividad == "6" && _cosRendiController.text.isNotEmpty && _cosHumeController.text.isNotEmpty) {
-              activityData['cos_rendi'] = double.tryParse(_cosRendiController.text);
-              activityData['cos_hume'] = double.tryParse(_cosHumeController.text);
+            //Agrega datos de cosecha
+            if (cosRendi != null && cosHume != null) {
+              activityData['cos_rendi'] = cosRendi;
+              activityData['cos_hume'] = cosHume;
             }
 
-            if (_selectedTipoActividad == "4") {
-              if (_conCantController.text.isNotEmpty) {
-                activityData['con_cant'] = int.tryParse(_conCantController.text);
-              }
-              if (_conVigor != null) {
-                activityData['con_vigor'] = _conVigor;
-              }
+            // Validación de con_cant y con_vigor antes de agregarlos a la actividad
+            if (conCant != null) {
+              activityData['con_cant'] = conCant;  // Cantidad de plantas por ha
             }
 
-            // Añadir los insumos seleccionados
-            if (_selectedInsumos.isNotEmpty) {
-              activityData['insumos'] = _selectedInsumos.map((insumo) {
-                return {
-                  'ins_desc': insumo['ins_desc'],
-                  'ins_id': insumo['ins_id'],
-                  'ins_cant': insumo['inst_cant'],
-                };
-              }).toList();
+            if (_conVigor != null) {
+              activityData['con_vigor'] = _conVigor;  // Vigor de las plantas (1 a 5)
             }
 
+            // Agregar los insumos a la actividad
+            if (insumosData.isNotEmpty) {
+              activityData['insumos'] = insumosData;
+            }
+
+            // 3. Llamar a la función asincrónica de actualización fuera de setState
             bool success = await Provider.of<ActivityProvider>(context, listen: false).updateActivity(activityData);
 
-            if (success) {
-              onSaveSuccess(context); // Llamar a la función de éxito
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Error al actualizar la actividad"))
-              );
+            // Verificar si el widget sigue montado antes de llamar a setState
+            if (mounted) {
+              setState(() {
+                // Aquí solo actualizas el estado, no haces trabajo asíncrono.
+              });
+
+              // Llamar a la función de éxito si todo salió bien
+              if (success) {
+                onSaveSuccess(context); // Llamar a la función de éxito
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Error al actualizar la actividad"))
+                );
+              }
             }
           }
         },
@@ -259,7 +322,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       ),
     );
   }
-  
+
   Widget _buildDatePicker() {
     return ListTile(
       title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
@@ -345,69 +408,137 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("Insumos", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          TypeAheadField<Map<String, dynamic>>(
-            controller: _insumoController,
-            suggestionsCallback: (pattern) async {
-              final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-              return activityProvider.insumos.toList();
-            },
-            itemBuilder: (context, suggestion) {
-              return ListTile(
-                title: Text(suggestion["ins_desc"] ?? "Sin nombre"),
-              );
-            },
-            onSelected: (suggestion) {
-              if (!_selectedInsumos.any((insumo) => insumo['ins_id'] == suggestion['ins_id'])) {
-                if (mounted) { // Verificar si el widget aún está montado
-                  setState(() {
-                    _selectedInsumos.add({
-                      'ins_desc': suggestion['ins_desc'],
-                      'ins_id': suggestion['ins_id'],
-                      'inst_cant': 0.0,
-                      'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
-                    });
-                    _insumoController.clear();
-                  });
-                }
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Este insumo ya está agregado")),
+
+          // Sección para buscar insumos existentes
+          AbsorbPointer(
+            absorbing: _activityState == 'Pendiente',
+            child: TypeAheadField<Map<String, dynamic>>(
+              builder: (context, controller, focusNode) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: "Buscar Insumo",
+                    hintText: "Buscar por nombre",
+                    border: OutlineInputBorder(),
+                  ),
                 );
-              }
-            },
-          ),
-          const SizedBox(height: 15),
-          TextFormField(
-            controller: _newInsumoController,
-            decoration: InputDecoration(
-              labelText: "Nuevo insumo",
-              hintText: "Agregar nuevo insumo",
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add, color: Colors.green),
-                onPressed: () {
-                  if (_newInsumoController.text.isNotEmpty) {
-                    if (mounted) { // Verificar si el widget aún está montado
-                      setState(() {
-                        _selectedInsumos.add({
-                          'ins_desc': _newInsumoController.text,
-                          'ins_id': -1, // Indica que es un nuevo insumo
-                          'inst_cant': 0.0,
-                          'controller': TextEditingController(text: '0'), // ✅ Controlador para cantidad
-                        });
-                        _newInsumoController.clear();
-                      });
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("El nombre del insumo no puede estar vacío")),
-                    );
-                  }
-                },
-              ),
+              },
+              suggestionsCallback: (pattern) async {
+                final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+                final prefs = await SharedPreferences.getInstance();
+                final String? token = prefs.getString("auth_token");
+
+                if (activityProvider.insumos.isEmpty && token != null) {
+                  await activityProvider.fetchInsumos(token);
+                }
+
+                // Si no hay insumos, mostrar mensaje indicando que no hay insumos disponibles
+                if (activityProvider.insumos.isEmpty) {
+                  return []; // Vacío para mostrar el mensaje de "no hay insumos"
+                }
+
+                return activityProvider.insumos.where((insumo) {
+                  return (insumo['ins_desc'] as String).toLowerCase().contains(pattern.toLowerCase());
+                }).toList();
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion['ins_desc'] ?? "Sin nombre"),
+                );
+              },
+              onSelected: (suggestion) {
+                setState(() {
+                  _selectedInsumos.add({
+                    'ins_desc': suggestion['ins_desc'] ?? '',
+                    'ins_id': suggestion['ins_id'] ?? 0,
+                    'ins_cant': 0.0,
+                    'ins_unidad_medida': suggestion['ins_unidad_medida'] ?? '',
+                    'controller': TextEditingController(text: ''),
+                  });
+                  _newInsumoController.clear();
+                });
+              },
             ),
           ),
+
+          // Mensaje si no hay insumos preexistentes
+          if (_activityState != 'Pendiente' && Provider.of<ActivityProvider>(context).insumos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 10.0),
+              child: Text(
+                "No hay insumos preexistentes disponibles. Agrega un nuevo insumo.",
+                style: TextStyle(color: Colors.red, fontSize: 14),
+              ),
+            ),
+
+          const SizedBox(height: 10),
+
+          // Sección para agregar un nuevo insumo
+          if (_activityState != 'Pendiente') 
+            Row(
+              children: [
+                // Descripción del nuevo insumo
+                Expanded(
+                  child: TextFormField(
+                    controller: _newInsumoController,
+                    decoration: const InputDecoration(
+                      labelText: "Nuevo Insumo",
+                      hintText: "Nombre del insumo",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Unidad de medida del nuevo insumo
+                Expanded(
+                  child: TextFormField(
+                    controller: _unidadController,
+                    decoration: const InputDecoration(
+                      labelText: "Unidad de medida",
+                      hintText: "Unidad",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+
+          // Botón para agregar insumo nuevo
+          if (_activityState != 'Pendiente')
+            ElevatedButton.icon(
+              onPressed: () {
+                if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
+                  setState(() {
+                    _selectedInsumos.add({
+                      'ins_desc': _newInsumoController.text,
+                      'ins_id': -1, // Identificador único para nuevos insumos
+                      'ins_cant': 0.0,
+                      'ins_unidad_medida': _unidadController.text,
+                      'controller': TextEditingController(text: ''),
+                    });
+                    _newInsumoController.clear();
+                    _unidadController.clear();
+                  });
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("El nombre del insumo y la unidad de medida no pueden estar vacíos")),
+                  );
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Agregar Insumo"),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+
           const SizedBox(height: 15),
+
+          // Mostrar la lista de insumos agregados
           if (_selectedInsumos.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
@@ -432,24 +563,23 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                               border: OutlineInputBorder(),
                             ),
                             onChanged: (value) {
-                              if (mounted) { // Verificar si el widget aún está montado
-                                setState(() {
-                                  insumo['inst_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
-                                });
-                              }
+                              setState(() {
+                                insumo['ins_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
+                              });
                             },
+                            enabled: _activityState != 'Pendiente',
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Text(insumo['ins_unidad_medida'] ?? ''), // Display unidad de medida
                       ],
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                      onPressed: () {
-                        if (mounted) { // Verificar si el widget aún está montado
-                          setState(() {
-                            _selectedInsumos.remove(insumo);
-                          });
-                        }
+                      onPressed: _activityState == 'Pendiente' ? null : () {
+                        setState(() {
+                          _selectedInsumos.remove(insumo);
+                        });
                       },
                     ),
                   );

@@ -78,6 +78,10 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                               "rol": "Cargando..."
                             };
 
+                            final userName = userInfo["uss_nombre"] ?? "Nombre no disponible";
+                            final userEmail = userInfo["uss_email"] ?? "Email no disponible";
+                            final userRole = userInfo["rol"]?["rol_desc"] ?? "Rol no disponible";
+
                             return Column(
                               children: [
                                 Align(
@@ -96,12 +100,9 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                                         child: Icon(Icons.person, size: 40),
                                       ),
                                       const SizedBox(height: 10),
-                                      Text(userInfo["uss_nombre"]!,
-                                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                      Text(userInfo["uss_email"]!,
-                                          style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                                      Text("Rol: ${userInfo["rol"]['rol_desc']!}",
-                                          style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                      Text(userName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Text(userEmail, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                      Text("Rol: $userRole", style: const TextStyle(fontSize: 14, color: Colors.grey)),
                                     ],
                                   ),
                                 ),
@@ -161,7 +162,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
     });
 
     return AppBar(
-      title: const Text("MSPAA"),
+      title: const Text("SCDAA"),
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       actions: [
         IconButton(

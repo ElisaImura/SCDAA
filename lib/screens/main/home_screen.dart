@@ -28,8 +28,34 @@ class _HomeScreenState extends State<HomeScreen> {
     await activityProvider.fetchCiclosActivos();
     await activityProvider.fetchActividadesRecientes();
     await activityProvider.fetchTareas();
-    if (mounted) { // Verificar si el widget aún está montado
+    if (mounted) {
       setState(() {});
+    }
+  }
+
+  String _getEstadoActividad(int estado) {
+    switch (estado) {
+      case 1:
+        return "Pendiente";
+      case 2:
+        return "En Progreso";
+      case 3:
+        return "Finalizado";
+      default:
+        return "Desconocido";
+    }
+  }
+
+  Color _getColorForEstado(int estado) {
+    switch (estado) {
+      case 1:
+        return Colors.orange; // Pendiente
+      case 2:
+        return Colors.blue; // En Progreso
+      case 3:
+        return Colors.green; // Finalizado
+      default:
+        return Colors.grey; // Desconocido
     }
   }
 
@@ -44,12 +70,18 @@ class _HomeScreenState extends State<HomeScreen> {
           String tipoActividad = actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
           String loteNombre = actividad['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
           String fecha = actividad['act_fecha'] ?? "Fecha desconocida";
-          String usuarioAsignado = actividad['ciclo']['act_ciclos'][0]['uss_nombre'] ?? "Usuario desconocido";
+          String usuarioAsignado = actividad['ciclo']['act_ciclos']?.firstWhere(
+            (actCiclo) => actCiclo['uss_nombre'] != null,
+            orElse: () => {'uss_nombre': "Usuario desconocido"},
+          )['uss_nombre'];
+          int estadoInt = actividad['act_estado'] ?? 0;
+          String estado = _getEstadoActividad(estadoInt);
+          Color colorEstado = _getColorForEstado(estadoInt);
 
           Color color = _getColorForActivity(tipoActividad);
           IconData icono = _getIconForActivity(tipoActividad);
 
-          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color);
+          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color, estado: estado, colorEstado: colorEstado);
         })
         .toList();
 
@@ -59,12 +91,18 @@ class _HomeScreenState extends State<HomeScreen> {
           String tipoActividad = tarea['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
           String loteNombre = tarea['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
           String fecha = tarea['act_fecha'] ?? "Fecha desconocida";
-          String usuarioAsignado = tarea['ciclo']['act_ciclos'][0]['uss_nombre'] ?? "Usuario desconocido";
+          String usuarioAsignado = tarea['ciclo']['act_ciclos']?.firstWhere(
+            (actCiclo) => actCiclo['uss_nombre'] != null,
+            orElse: () => {'uss_nombre': "Usuario desconocido"},
+          )['uss_nombre'];
+          int estadoInt = tarea['act_estado'] ?? 0;
+          String estado = _getEstadoActividad(estadoInt);
+          Color colorEstado = _getColorForEstado(estadoInt);
 
           Color color = _getColorForActivity(tipoActividad);
           IconData icono = _getIconForActivity(tipoActividad);
 
-          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color);
+          return _buildCard(tipoActividad, loteNombre, fecha, usuarioAsignado, icono, color, estado: estado, colorEstado: colorEstado);
         })
         .toList();
 
@@ -89,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (proximasTareas.length > 3)
                           TextButton(
                             onPressed: () {
-                              if (mounted) { // Verificar si el widget aún está montado
+                              if (mounted) {
                                 setState(() {
                                   mostrarTodasLasTareas = !mostrarTodasLasTareas;
                                 });
@@ -109,15 +147,15 @@ class _HomeScreenState extends State<HomeScreen> {
   IconData _getIconForActivity(String tipoActividad) {
     switch (tipoActividad) {
       case 'Desecación':
-        return Icons.cloud_done; 
+        return Icons.cloud_done;
       case 'Tratamiento de Semilla':
         return Icons.spa;
       case 'Siembra':
         return Icons.grain;
       case 'Control de Germinación':
-        return Icons.local_florist; 
+        return Icons.local_florist;
       case 'Fumigación':
-        return Icons.local_fire_department; 
+        return Icons.local_fire_department;
       case 'Cosecha':
         return Icons.agriculture;
       default:
@@ -128,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Color _getColorForActivity(String tipoActividad) {
     switch (tipoActividad) {
       case 'Desecación':
-        return Colors.blue; 
+        return Colors.blue;
       case 'Tratamiento de Semilla':
         return Colors.green;
       case 'Siembra':
@@ -161,9 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 40,
           child: ListView(
             scrollDirection: Axis.horizontal,
-            children: ciclos.map((ciclo) => Padding(
+            children: ciclos.isEmpty
+                ? [Text("No hay ciclos activos disponibles.")]
+                : ciclos.map((ciclo) => Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: Chip(label: Text(ciclo['ci_nombre'])),
+              child: Chip(label: Text(ciclo['ci_nombre'] ?? "Ciclo desconocido")),
             )).toList(),
           ),
         ),
@@ -185,21 +225,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCard(
-      String titulo, String subtitulo, String fecha, String usuario, IconData icono, Color color) {
+      String titulo, String subtitulo, String fecha, String usuario, IconData icono, Color color, {String estado = "Desconocido", Color colorEstado = Colors.grey}) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: Icon(icono, color: color),
-        title: Text(titulo),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Lote: $subtitulo"),
-            Text("Fecha: $fecha"),
-            Text("Responsable: $usuario"),
-          ],
-        ),
+      child: Stack(
+        children: [
+          ListTile(
+            leading: Icon(icono, color: color),
+            title: Text(titulo),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Lote: $subtitulo"),
+                Text("Fecha: $fecha"),
+                Text("Responsable: $usuario"),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Chip(
+              label: Text(estado, style: TextStyle(color: Colors.white, fontSize: 12)),
+              backgroundColor: colorEstado,
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            ),
+          ),
+        ],
       ),
     );
   }

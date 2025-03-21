@@ -2,12 +2,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 class AddActivityScreen extends StatefulWidget {
   const AddActivityScreen({super.key});
@@ -19,12 +19,12 @@ class AddActivityScreen extends StatefulWidget {
 class _AddActivityScreenState extends State<AddActivityScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _descripcionController = TextEditingController();
-  final TextEditingController _insumoController = TextEditingController();
   final TextEditingController _newInsumoController = TextEditingController();
   final TextEditingController _densidadController = TextEditingController();
   final TextEditingController _cosRendiController = TextEditingController();
   final TextEditingController _cosHumeController = TextEditingController();
   final TextEditingController _conCantController = TextEditingController();
+  final TextEditingController _unidadController = TextEditingController();
 
 
   DateTime _selectedDate = DateTime.now();
@@ -55,6 +55,33 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     });
   }
 
+  bool _isFutureDate() {
+    return _selectedDate.isAfter(DateTime.now());
+  }
+
+  Widget _buildDatePicker() {
+    return ListTile(
+      title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
+      trailing: const Icon(Icons.calendar_today),
+      onTap: () async {
+        DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2030),
+        );
+        if (pickedDate != null) {
+          setState(() {
+            _selectedDate = pickedDate;
+            if (_isFutureDate()) {
+              _changeActivityState('Pendiente');
+            }
+          });
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
@@ -65,6 +92,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         actions: [
           GestureDetector(
             onTap: () async {
+              if (_isFutureDate()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("No se puede cambiar el estado si la fecha es futura")),
+                );
+                return;
+              }
               final String? newState = await showDialog<String>(
                 context: context,
                 builder: (BuildContext context) {
@@ -120,7 +153,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
                     if (_selectedTipoActividad == "4")_buildConCantField(),
                     if (_selectedTipoActividad == "4")_buildConVigorField(),
-                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad)) _buildInsumosSection(),
+                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
                     _buildSaveButton(),
@@ -131,26 +164,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
  
-  Widget _buildDatePicker() {
-    return ListTile(
-      title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
-      trailing: const Icon(Icons.calendar_today),
-      onTap: () async {
-        DateTime? pickedDate = await showDatePicker(
-          context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-        );
-        if (pickedDate != null) {
-          setState(() {
-            _selectedDate = pickedDate;
-          });
-        }
-      },
-    );
-  }
-
   Widget _buildCicloDropdown(ActivityProvider activityProvider) {
     return DropdownButtonFormField<String>(
       value: _selectedCiclo,
@@ -206,72 +219,137 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("Insumos", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          TypeAheadField<Map<String, dynamic>>(
-            controller: _insumoController,
-            suggestionsCallback: (pattern) async {
-              final prefs = await SharedPreferences.getInstance();
-              final String? token = prefs.getString("auth_token");
-              final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-              if (activityProvider.insumos.isEmpty) {
-                if (token == null) {
-                  if (kDebugMode) {
-                    print("Error: Token is null, please log in again.");
-                  }
-                } else {
-                  if (activityProvider.insumos.isEmpty) {
-                    await activityProvider.fetchInsumos(token);
-                  }
+
+          // Sección para buscar insumos existentes
+          AbsorbPointer(
+            absorbing: _activityState == 'Pendiente',
+            child: TypeAheadField<Map<String, dynamic>>(
+              builder: (context, controller, focusNode) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: "Buscar Insumo",
+                    hintText: "Buscar por nombre",
+                    border: OutlineInputBorder(),
+                  ),
+                );
+              },
+              suggestionsCallback: (pattern) async {
+                final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+                final prefs = await SharedPreferences.getInstance();
+                final String? token = prefs.getString("auth_token");
+
+                if (activityProvider.insumos.isEmpty && token != null) {
+                  await activityProvider.fetchInsumos(token);
                 }
-              }
-              return activityProvider.insumos.toList();
-            },
-            itemBuilder: (context, suggestion) {
-              return ListTile(
-                title: Text(suggestion["ins_desc"] ?? "Sin nombre"),
-              );
-            },
-            onSelected: (suggestion) {
-              setState(() {
-                _selectedInsumos.add({
-                  'ins_desc': suggestion['ins_desc'],
-                  'ins_id': suggestion['ins_id'],
-                  'inst_cant': 0.0,
-                  'controller': TextEditingController(text: ''),
+
+                // Si no hay insumos, mostrar mensaje indicando que no hay insumos disponibles
+                if (activityProvider.insumos.isEmpty) {
+                  return []; // Vacío para mostrar el mensaje de "no hay insumos"
+                }
+
+                return activityProvider.insumos.where((insumo) {
+                  return (insumo['ins_desc'] as String).toLowerCase().contains(pattern.toLowerCase());
+                }).toList();
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion['ins_desc'] ?? "Sin nombre"),
+                );
+              },
+              onSelected: (suggestion) {
+                setState(() {
+                  _selectedInsumos.add({
+                    'ins_desc': suggestion['ins_desc'] ?? '',
+                    'ins_id': suggestion['ins_id'] ?? 0,
+                    'ins_cant': 0.0,
+                    'ins_unidad_medida': suggestion['ins_unidad_medida'] ?? '',
+                    'controller': TextEditingController(text: ''),
+                  });
+                  _newInsumoController.clear();
                 });
-                _insumoController.clear();
-              });
-            },
-          ),
-          const SizedBox(height: 15),
-          TextFormField(
-            controller: _newInsumoController,
-            decoration: InputDecoration(
-              labelText: "Nuevo insumo",
-              hintText: "Agregar nuevo insumo",
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add, color: Colors.green),
-                onPressed: () {
-                  if (_newInsumoController.text.isNotEmpty) {
-                    setState(() {
-                      _selectedInsumos.add({
-                        'ins_desc': _newInsumoController.text,
-                        'ins_id': -1, // Identificador único para nuevos insumos
-                        'inst_cant': 0.0,
-                        'controller': TextEditingController(text: ''),
-                      });
-                      _newInsumoController.clear();
-                    });
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("El nombre del insumo no puede estar vacío")),
-                    );
-                  }
-                },
-              ),
+              },
             ),
           ),
+
+          // Mensaje si no hay insumos preexistentes
+          if (_activityState != 'Pendiente' && Provider.of<ActivityProvider>(context).insumos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 10.0),
+              child: Text(
+                "No hay insumos preexistentes disponibles. Agrega un nuevo insumo.",
+                style: TextStyle(color: Colors.red, fontSize: 14),
+              ),
+            ),
+
+          const SizedBox(height: 10),
+
+          // Sección para agregar un nuevo insumo
+          if (_activityState != 'Pendiente') 
+            Row(
+              children: [
+                // Descripción del nuevo insumo
+                Expanded(
+                  child: TextFormField(
+                    controller: _newInsumoController,
+                    decoration: const InputDecoration(
+                      labelText: "Nuevo Insumo",
+                      hintText: "Nombre del insumo",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Unidad de medida del nuevo insumo
+                Expanded(
+                  child: TextFormField(
+                    controller: _unidadController,
+                    decoration: const InputDecoration(
+                      labelText: "Unidad de medida",
+                      hintText: "Unidad",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+
+          // Botón para agregar insumo nuevo
+          if (_activityState != 'Pendiente')
+            ElevatedButton.icon(
+              onPressed: () {
+                if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
+                  setState(() {
+                    _selectedInsumos.add({
+                      'ins_desc': _newInsumoController.text,
+                      'ins_id': -1, // Identificador único para nuevos insumos
+                      'ins_cant': 0.0,
+                      'ins_unidad_medida': _unidadController.text,
+                      'controller': TextEditingController(text: ''),
+                    });
+                    _newInsumoController.clear();
+                    _unidadController.clear();
+                  });
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("El nombre del insumo y la unidad de medida no pueden estar vacíos")),
+                  );
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Agregar Insumo"),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+
           const SizedBox(height: 15),
+
+          // Mostrar la lista de insumos agregados
           if (_selectedInsumos.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
@@ -297,16 +375,19 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                             ),
                             onChanged: (value) {
                               setState(() {
-                                insumo['inst_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
+                                insumo['ins_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
                               });
                             },
+                            enabled: _activityState != 'Pendiente',
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Text(insumo['ins_unidad_medida'] ?? ''),
                       ],
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                      onPressed: () {
+                      onPressed: _activityState == 'Pendiente' ? null : () {
                         setState(() {
                           _selectedInsumos.remove(insumo);
                         });
@@ -341,12 +422,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
-            validator: (value) {
+            validator: _activityState == 'Pendiente' ? null : (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor, ingresa el rendimiento de la cosecha.';
               }
               return null;
             },
+            enabled: _activityState != 'Pendiente',
           ),
           const SizedBox(height: 20),
           TextFormField(
@@ -356,12 +438,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
-            validator: (value) {
+            validator: _activityState == 'Pendiente' ? null : (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor, ingresa la humedad del grano.';
               }
               return null;
             },
+            enabled: _activityState != 'Pendiente',
           ),
         ],
       ),
@@ -378,12 +461,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           border: OutlineInputBorder(),
         ),
         keyboardType: TextInputType.numberWithOptions(decimal: true),
-        validator: (value) {
+        validator: _activityState == 'Pendiente' ? null : (value) {
           if (value == null || value.isEmpty) {
             return 'Por favor, ingresa la densidad de semilla.';
           }
           return null;
         },
+        enabled: _activityState != 'Pendiente',
       ),
     );
   }
@@ -398,12 +482,13 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           border: OutlineInputBorder(),
         ),
         keyboardType: TextInputType.number,
-        validator: (value) {
+        validator: _activityState == 'Pendiente' ? null : (value) {
           if (value == null || value.isEmpty) {
             return 'Por favor ingrese la cantidad de plantas por ha';
           }
           return null;
         },
+        enabled: _activityState != 'Pendiente',
       ),
     );
   }
@@ -412,7 +497,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: DropdownButtonFormField<int>(
-        value: _conVigor,
+        value: _conVigor ?? 1,
         decoration: const InputDecoration(labelText: "Vigor de las plantas", border: OutlineInputBorder()),
         items: [
           DropdownMenuItem(value: 1, child: Text("Deficiente")),
@@ -421,14 +506,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           DropdownMenuItem(value: 4, child: Text("Bueno")),
           DropdownMenuItem(value: 5, child: Text("Excelente")),
         ],
-        onChanged: (value) {
+        onChanged: _activityState == 'Pendiente' ? null : (value) {
           setState(() {
             _conVigor = value!;
           });
         },
       ),
     );
-}
+  }
 
   Widget _buildSaveButton() {
     return SizedBox(
@@ -453,13 +538,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 // Es un insumo nuevo, lo agregamos a la lista de insumos nuevos
                 insumosNuevos.add({
                   'ins_desc': insumo['ins_desc'],
-                  'inst_cant': insumo['inst_cant'] ?? 0.0,
+                  'ins_cant': insumo['ins_cant'] ?? 0.0,
+                  'ins_unidad_medida': insumo['ins_unidad_medida'],
                 });
               } else {
                 // Es un insumo ya existente, lo agregamos a los insumosData
                 insumosData.add({
                   'ins_id': insumo['ins_id'],
-                  'ins_cant': insumo['inst_cant'] ?? 0.0,
+                  'ins_cant': insumo['ins_cant'] ?? 0.0,
                 });
               }
             }
@@ -482,7 +568,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   if (insumoNuevo['ins_desc'] == insumoGuardado['ins_desc']) {
                     insumosData.add({
                       'ins_id': insumoGuardado['ins_id'],  // Asignamos el ins_id recuperado
-                      'ins_cant': insumoNuevo['inst_cant'],  // Asignamos la cantidad del insumo nuevo
+                      'ins_cant': insumoNuevo['ins_cant'],  // Asignamos la cantidad del insumo nuevo
+                      'ins_unidad_medida': insumoGuardado['ins_unidad_medida'],  // Asignamos la unidad de medida
                     });
                   }
                 }
