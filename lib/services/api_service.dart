@@ -653,7 +653,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     }
   }
 
-  Future<bool> updateUser(int userId, String name, String email, String role) async {
+  Future<bool> updateUser(int userId, String name, String email, int role) async {
     final String? token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/usuarios/$userId'),
@@ -664,7 +664,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       body: jsonEncode({
         "uss_nombre": name,
         "uss_email": email,
-        "rol_desc": role,
+        "rol_id": role,
       }),
     );
 
@@ -713,6 +713,41 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     } catch (e) {
       print("Error al eliminar usuario: $e");
       return false;
+    }
+  }
+
+  /// 🔹 Agregar un nuevo usuario a la API
+  Future<bool> addUser(String name, String email, int role, String password) async {
+    final String? token = await _getToken();
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/usuarios"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "uss_nombre": name,
+        "uss_email": email,
+        "rol_id": role,
+        "uss_clave": password,
+      }),
+    );
+
+    print(jsonEncode({
+      "uss_nombre": name,
+      "uss_email": email,
+      "rol_id": role,
+      "uss_clave": password,
+    }),);
+
+    if (response.statusCode == 201) {
+      return true; // Usuario creado exitosamente
+    } else {
+      if (kDebugMode) {
+        print("❌ Error al agregar usuario: ${response.body}");
+      }
+      return false; // Fallo al crear usuario
     }
   }
 }

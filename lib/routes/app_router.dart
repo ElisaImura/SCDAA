@@ -10,7 +10,7 @@ import 'package:mspaa/screens/main/reports_screen.dart';
 import 'package:mspaa/screens/views/users_view.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
-import 'package:mspaa/screens/forms/edit_user_view.dart';
+import 'package:mspaa/screens/forms/edit_user_screen.dart';
 
 class AppRouter {
   static GoRouter getRouter(bool isLoggedIn) {

@@ -57,8 +57,26 @@ class UsersProvider with ChangeNotifier {
     }
   }
 
+  // Función para agregar un nuevo usuario
+  Future<bool> addUser(String name, String email, int role, String password) async {
+    final ApiService apiService = ApiService();
+    try {
+      bool success = await apiService.addUser(name, email, role, password);
+      if (success) {
+        // Si la adición fue exitosa, recargar los usuarios
+        await fetchUsers();
+      }
+      return success;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error al agregar usuario: $e");
+      }
+      return false;
+    }
+  }
+
   // Método para actualizar los datos del usuario
-  Future<bool> updateUser(int userId, String name, String email, String role) async {
+  Future<bool> updateUser(int userId, String name, String email, int role) async {
     final ApiService apiService = ApiService();
     try {
       // Llama al método para actualizar el usuario en el backend
