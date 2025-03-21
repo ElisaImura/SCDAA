@@ -108,19 +108,26 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         actions: [
           GestureDetector(
             onTap: () async {
+              if (_selectedDate.isAfter(DateTime.now())) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("No se puede cambiar el estado si la fecha es futura"))
+                );
+                return;
+              }
               final String? newState = await showDialog<String>(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
                     title: const Text('Cambiar Estado de la Actividad'),
                     content: DropdownButton<String>(
-                      value: _activityState,
+                      value: _activityState,  // El valor actual del estado
                       onChanged: (String? newValue) {
-                        Navigator.pop(context, newValue);
+                        // Cambiar el estado de la actividad
+                        Navigator.pop(context, newValue); // Cerrar el diálogo y devolver el valor seleccionado
                       },
                       items: <String>['Pendiente', 'En progreso', 'Finalizada']
                           .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(value: _activityState, child: Text(value));
+                        return DropdownMenuItem<String>(value: value, child: Text(value));
                       }).toList(),
                     ),
                   );
@@ -128,12 +135,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               );
 
               if (newState != null) {
-                if (mounted) { // Verificar si el widget aún está montado
-                  setState(() {
-                    activityProvider.fetchActividadesRecientes();
-                    activityProvider.fetchTareas();
-                  });
-                }
+                setState(() {
+                  _activityState = newState; // Actualizar el estado de la actividad
+                });
               }
             },
             child: Padding(
@@ -411,7 +415,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
           // Sección para buscar insumos existentes
           AbsorbPointer(
-            absorbing: _activityState == 'Pendiente',
+            absorbing: _activityState == 'Pendiente',  // Bloqueado si el estado es Pendiente
             child: TypeAheadField<Map<String, dynamic>>(
               builder: (context, controller, focusNode) {
                 return TextField(
@@ -535,7 +539,6 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                 textStyle: const TextStyle(fontSize: 16),
               ),
             ),
-
           const SizedBox(height: 15),
 
           // Mostrar la lista de insumos agregados
@@ -567,11 +570,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                 insumo['ins_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
                               });
                             },
-                            enabled: _activityState != 'Pendiente',
+                            enabled: _activityState != 'Pendiente',  // Bloqueado si el estado es Pendiente
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text(insumo['ins_unidad_medida'] ?? ''), // Display unidad de medida
+                        Text(insumo['ins_unidad_medida'] ?? ''),
                       ],
                     ),
                     trailing: IconButton(
@@ -611,12 +614,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
-            validator: (value) {
+            validator: _activityState == 'Pendiente' ? null : (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor, ingresa el rendimiento de la cosecha.';
               }
               return null;
             },
+            enabled: _activityState != 'Pendiente',  // Bloqueado si el estado es Pendiente
           ),
           const SizedBox(height: 20),
           TextFormField(
@@ -626,12 +630,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
-            validator: (value) {
+            validator: _activityState == 'Pendiente' ? null : (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor, ingresa la humedad del grano.';
               }
               return null;
             },
+            enabled: _activityState != 'Pendiente',  // Bloqueado si el estado es Pendiente
           ),
         ],
       ),
@@ -648,12 +653,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           border: OutlineInputBorder(),
         ),
         keyboardType: TextInputType.numberWithOptions(decimal: true),
-        validator: (value) {
+        validator: _activityState == 'Pendiente' ? null : (value) {
           if (value == null || value.isEmpty) {
             return 'Por favor, ingresa la densidad de semilla.';
           }
           return null;
         },
+        enabled: _activityState != 'Pendiente',  // Bloqueado si el estado es Pendiente
       ),
     );
   }
@@ -668,12 +674,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           border: OutlineInputBorder(),
         ),
         keyboardType: TextInputType.number,
-        validator: (value) {
+        validator: _activityState == 'Pendiente' ? null : (value) {
           if (value == null || value.isEmpty) {
             return 'Por favor ingrese la cantidad de plantas por ha';
           }
           return null;
         },
+        enabled: _activityState != 'Pendiente',  // Bloqueado si el estado es Pendiente
       ),
     );
   }
@@ -682,7 +689,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: DropdownButtonFormField<int>(
-        value: _conVigor,
+        value: _conVigor ?? 1,
         decoration: const InputDecoration(labelText: "Vigor de las plantas", border: OutlineInputBorder()),
         items: [
           DropdownMenuItem(value: 1, child: Text("Deficiente")),
@@ -691,17 +698,15 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           DropdownMenuItem(value: 4, child: Text("Bueno")),
           DropdownMenuItem(value: 5, child: Text("Excelente")),
         ],
-        onChanged: (value) {
-          if (mounted) { // Verificar si el widget aún está montado
-            setState(() {
-              _conVigor = value;
-            });
-          }
+        onChanged: _activityState == 'Pendiente' ? null : (value) {
+          setState(() {
+            _conVigor = value!;
+          });
         },
       ),
     );
   }
-  
+
   Widget _buildResponsableDropdown(ActivityProvider activityProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -760,7 +765,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       case 'Finalizada':
         return 3;
       default:
-        return 1;
+        return 1; // Valor predeterminado (Pendiente)
     }
   }
 

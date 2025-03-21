@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/widgets/header.dart';
 import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/screens/forms/add_user_view.dart';  // Asegúrate de importar la pantalla para agregar un nuevo usuario
+import 'package:mspaa/screens/forms/add_user_screen.dart';  // Asegúrate de importar la pantalla para agregar un nuevo usuario
 
 class UsersView extends StatefulWidget {
   const UsersView({super.key});

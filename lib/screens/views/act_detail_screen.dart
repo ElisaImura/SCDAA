@@ -7,13 +7,11 @@ import 'package:mspaa/screens/forms/edit_activity_screen.dart';
 import 'package:provider/provider.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
-  // Definimos el Map de actividad que recibimos como parámetro
   final Map<String, dynamic> actividad;
 
-  // Constructor de la pantalla que recibe la actividad
   const ActivityDetailScreen({
     super.key, 
-    required this.actividad, // Recibimos la actividad aquí
+    required this.actividad,
   });
 
   @override
@@ -21,32 +19,26 @@ class ActivityDetailScreen extends StatefulWidget {
 }
 
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
-  late Map<String, dynamic> actividadActual; // Para almacenar los datos actualizados
+  late Map<String, dynamic> actividadActual;
   String responsable = "Cargando...";
 
   @override
   void initState() {
     super.initState();
-    actividadActual = widget.actividad; // Inicializamos con los datos actuales
+    actividadActual = widget.actividad;
   
-    // Verificar si existe uss_id en el ciclo y hacer la llamada para obtener los datos del responsable
     if (actividadActual['ciclo'] != null && actividadActual['ciclo']['uss_id'] != null) {
       final ussId = actividadActual['ciclo']['uss_id'];
       Future.delayed(Duration.zero, () => _fetchResponsable(ussId));
     }
-
   }
 
   void _fetchResponsable(int ussId) async {
     final usersProvider = Provider.of<UsersProvider>(context, listen: false);
-    
-    // Llamamos al método para obtener los datos del usuario
     await usersProvider.fetchUserByID(ussId);
 
-    // Después de obtener el usuario, actualizar la UI
     if (mounted) {
       setState(() {
-        // El responsable se establece desde el provider
         responsable = usersProvider.userData?['uss_nombre'] ?? "Responsable no asignado";
       });
     }
@@ -61,10 +53,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
 
     if (result == true) {
-      _fetchUpdatedActivity(); // Recargar los datos de la actividad
+      _fetchUpdatedActivity();
     }
 
-    // ✅ Cuando se vuelve a CalendarScreen, también enviamos `true` si hubo cambios
     if (mounted) {
       Navigator.pop(context, true); 
     }
@@ -72,8 +63,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   
   @override
   Widget build(BuildContext context) {
-    // 🔹 Usar `actividadActual` en lugar de `widget.actividad`
-    String titulo = actividadActual['tipo_actividad']['tpAct_nombre'] ?? "Sin título";
+    String titulo = actividadActual['tipo_actividad']?['tpAct_nombre'] ?? "Sin título";
     String fecha = actividadActual['act_fecha'] ?? "Fecha desconocida";
     String estado = (actividadActual['act_estado'] == 1)
         ? "Pendiente"
@@ -82,19 +72,39 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             : "Finalizado";
     String descripcion = actividadActual['act_desc'] ?? "No hay detalles disponibles.";
     String ciclo = (actividadActual['ciclo'] != null && actividadActual['ciclo']['ci_id'] != null)
-        ? "Ciclo: ${actividadActual['ciclo']['datos_ciclo']['ci_nombre']}"
+        ? "Ciclo: ${actividadActual['ciclo']['datos_ciclo']?['ci_nombre'] ?? 'Sin nombre'}"
         : "Sin ciclo";
     String lote = (actividadActual['ciclo'] != null && actividadActual['ciclo']['lote'] != null)
-        ? actividadActual['ciclo']['lote']['lot_nombre']
+        ? actividadActual['ciclo']['lote']['lot_nombre'] ?? "Sin lote"
         : "Sin lote";
     
-    List<dynamic> insumos = actividadActual['ciclo']['insumos'] ?? [];
-    int tipoActividadId = actividadActual['tpAct_id'];
-    double? densidadSemilla = tipoActividadId == 3 ? actividadActual['ciclo']['sie_densidad'] : null;
-    int? cantidadPlantas = tipoActividadId == 4 ? actividadActual['control_germinacion']['con_cant'] : null;
-    int? vigor = tipoActividadId == 4 ? actividadActual['control_germinacion']['con_vigor'] : null;
-    double? rendimiento = tipoActividadId == 6 ? actividadActual['ciclo']['datos_ciclo']['cos_rendi']?.toDouble() : null;
-    double? humedad = tipoActividadId == 6 ? actividadActual['ciclo']['datos_ciclo']['cos_hume']?.toDouble() : null;
+    List<dynamic> insumos = actividadActual['ciclo']?['insumos'] ?? [];
+    int tipoActividadId = actividadActual['tpAct_id'] ?? 0;
+    double? densidadSemilla = tipoActividadId == 3 
+        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['sie_densidad'] != null
+            ? actividadActual['ciclo']['sie_densidad']?.toDouble() 
+            : null 
+        : null;
+    int? cantidadPlantas = tipoActividadId == 4 
+        ? actividadActual['control_germinacion'] != null && actividadActual['control_germinacion']['con_cant'] != null
+            ? actividadActual['control_germinacion']['con_cant']
+            : null 
+        : null;
+    int? vigor = tipoActividadId == 4 
+        ? actividadActual['control_germinacion'] != null && actividadActual['control_germinacion']['con_vigor'] != null
+            ? actividadActual['control_germinacion']['con_vigor']
+            : null 
+        : null;
+    double? rendimiento = tipoActividadId == 6 
+        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['cos_rendi'] != null
+            ? actividadActual['ciclo']['datos_ciclo']['cos_rendi']?.toDouble() 
+            : null 
+        : null;
+    double? humedad = tipoActividadId == 6 
+        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['cos_hume'] != null
+            ? actividadActual['ciclo']['datos_ciclo']['cos_hume']?.toDouble() 
+            : null 
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -161,7 +171,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
-            if ([1, 2, 3, 5].contains(tipoActividadId)) ...[
+            if ([1, 2, 3, 5].contains(tipoActividadId)) ...[ 
               const Text(
                 "Insumos:",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -174,7 +184,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                           leading: const Icon(Icons.inventory, color: Colors.blue),
                           title: Text(insumo['ins_desc']),
                           subtitle: Text(
-                            "Cantidad: ${insumo['ins_cant']} L", // Unidades en litros
+                            "Cantidad: ${insumo['ins_cant']} L",
                           ),
                         );
                       }).toList(),
@@ -182,33 +192,33 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   : const Text("No hay insumos registrados."),
               const SizedBox(height: 20),
             ],
-            if (tipoActividadId == 3) ...[
+            if (tipoActividadId == 3) ...[ 
               const Text(
                 "Densidad de Semilla:",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text("Densidad de Semilla: $densidadSemilla kg/ha"), // Mostrar la densidad de semilla
+              Text("Densidad de Semilla: ${densidadSemilla ?? 'No disponible'} kg/ha"),
               const SizedBox(height: 20),
             ],
-            if (tipoActividadId == 4) ...[
+            if (tipoActividadId == 4) ...[ 
               const Text(
                 "Control de Germinación:",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text("Cantidad de plantas por ha: $cantidadPlantas"),
-              Text("Vigor: $vigor"),
+              Text("Cantidad de plantas por ha: ${cantidadPlantas ?? 'No disponible'}"),
+              Text("Vigor: ${vigor ?? 'No disponible'}"),
               const SizedBox(height: 20),
             ],
-            if (tipoActividadId == 6) ...[
+            if (tipoActividadId == 6) ...[ 
               const Text(
                 "Detalles de Cosecha:",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text("Rendimiento: $rendimiento kg/ha"),
-              Text("Humedad: $humedad%"),
+              Text("Rendimiento: ${rendimiento ?? 'No disponible'} kg/ha"),
+              Text("Humedad: ${humedad ?? 'No disponible'}%"),
               const SizedBox(height: 20),
             ],
             Row(
@@ -236,14 +246,13 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
   void _fetchUpdatedActivity() async {
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-
     final updatedActivity = await activityProvider.fetchActivityById(actividadActual['act_id']);
 
-    print("Datos actualizados recibidos: $updatedActivity"); // ✅ Verifica qué devuelve la API
+    print("Datos actualizados recibidos: $updatedActivity");
 
     if (updatedActivity != null) {
       setState(() {
-        actividadActual = updatedActivity; // ✅ Actualizar los datos en la UI
+        actividadActual = updatedActivity;
       });
     }
   }
