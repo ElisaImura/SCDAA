@@ -68,7 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
     List<Widget> actividadesRecientes = activityProvider.actividadesRecientes
         .map((actividad) {
           String tipoActividad = actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
-          String loteNombre = actividad['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
+          String loteNombre = actividad['ciclo']['lote'] != null
+              ? actividad['ciclo']['lote']['lot_nombre']
+              : "Desconocido";
           String fecha = actividad['act_fecha'] ?? "Fecha desconocida";
           String usuarioAsignado = actividad['ciclo']['act_ciclos']?.firstWhere(
             (actCiclo) => actCiclo['uss_nombre'] != null,

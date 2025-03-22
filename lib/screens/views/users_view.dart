@@ -103,6 +103,7 @@ class _UsersViewState extends State<UsersView> {
                           ),
                           elevation: 5,
                           color: Colors.white,
+                          // ignore: deprecated_member_use
                           shadowColor: Colors.black.withOpacity(0.1),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),

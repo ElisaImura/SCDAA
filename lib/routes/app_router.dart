@@ -8,6 +8,7 @@ import 'package:mspaa/screens/forms/add_weather_screen.dart';
 import 'package:mspaa/screens/main/home_screen.dart';
 import 'package:mspaa/screens/login_screen.dart';
 import 'package:mspaa/screens/main/reports_screen.dart';
+import 'package:mspaa/screens/views/lotes_view.dart';
 import 'package:mspaa/screens/views/users_view.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
@@ -75,6 +76,10 @@ class AppRouter {
         GoRoute(
           path: '/actividades',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: ActivitiesView())),
+        ),
+        GoRoute(
+          path: '/lotes',
+          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: LotesView())),
         ),
       ],
     );

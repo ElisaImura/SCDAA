@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/activity_provider.dart';
@@ -75,8 +75,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         ? "Ciclo: ${actividadActual['ciclo']['datos_ciclo']?['ci_nombre'] ?? 'Sin nombre'}"
         : "Sin ciclo";
     String lote = (actividadActual['ciclo'] != null && actividadActual['ciclo']['lote'] != null)
-        ? actividadActual['ciclo']['lote']['lot_nombre'] ?? "Sin lote"
-        : "Sin lote";
+        ? actividadActual['ciclo']['lote']['lot_nombre'] ?? "Desconocido"
+        : "Desconocido";
     
     List<dynamic> insumos = actividadActual['ciclo']?['insumos'] ?? [];
     int tipoActividadId = actividadActual['tpAct_id'] ?? 0;

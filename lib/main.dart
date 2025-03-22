@@ -4,6 +4,7 @@ import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
+import 'package:mspaa/providers/lotes_provider.dart';
 import 'package:mspaa/routes/app_router.dart';
 import 'package:mspaa/services/api_service.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
+        ChangeNotifierProvider(create: (_) => LotesProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn), // Usar MyApp con el isLoggedIn como parámetro
     ),

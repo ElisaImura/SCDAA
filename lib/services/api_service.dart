@@ -304,31 +304,6 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     return userId;
   }
 
-  /// 🔹 Agregar un nuevo lote a la API
-  Future<int?> addLote(String nombre) async {
-    final String? token = await _getToken();
-
-    // Crea el objeto JSON
-    final bodyData = jsonEncode({
-      "lot_nombre": nombre,
-    });
-
-    final response = await http.post(
-      Uri.parse("$baseUrl/lotes"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-      body: bodyData,
-    );
-
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data["lot_id"]; // Retorna el ID del nuevo lote
-    }
-    return null;
-  }
-
   /// 🔹 Verificar si el lote tiene un ciclo activo (sin `ci_fechafin`)
   Future<bool> hasActiveCycle(int lotId) async {
     final String? token = await _getToken();
@@ -778,6 +753,70 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       return true;  // Actividad eliminada con éxito
     } else {
       return false;  // Error al eliminar la actividad
+    }
+  }
+
+  /// 🔹 Agregar un nuevo lote a la API
+  Future<int?> addLote(String nombre) async {
+    final String? token = await _getToken();
+
+    // Crea el objeto JSON
+    final bodyData = jsonEncode({
+      "lot_nombre": nombre,
+    });
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/lotes"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: bodyData,
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data["lot_id"]; // Retorna el ID del nuevo lote
+    }
+    return null;
+  }
+
+  // Método para obtener todos los lotes
+  Future<List<dynamic>> getLotes() async {
+    final response = await http.get(Uri.parse('$baseUrl/lotes'));
+
+    if (response.statusCode == 200) {
+      // Si la respuesta es exitosa, decodificamos los datos
+      final List<dynamic> lotes = json.decode(response.body);
+      return lotes;
+    } else {
+      throw Exception('Error al obtener los lotes');
+    }
+  }
+
+  // Método para editar un lote
+  Future<bool> editLote(int loteId, Map<String, dynamic> loteData) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/lotes/$loteId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(loteData),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Error al editar el lote');
+    }
+  }
+
+  // Método para eliminar un lote
+  Future<bool> deleteLote(int loteId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/lotes/$loteId'));
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Error al eliminar el lote');
     }
   }
 }
