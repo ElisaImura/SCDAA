@@ -67,8 +67,10 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     // Configurar estado de la actividad
     _activityState = _getActivityStateString(widget.activityData['act_estado']);
 
-    if (widget.activityData['ciclo']['sie_densidad'] != null) {
-      _densidadController.text = widget.activityData['ciclo']['sie_densidad'];
+    print('Sie_densidad: ${widget.activityData['ciclo']['datos_ciclo']['sie_densidad']}');
+
+    if (widget.activityData['ciclo']['datos_ciclo']['sie_densidad'] != null) {
+      _densidadController.text = widget.activityData['ciclo']['datos_ciclo']['sie_densidad'].toString();
     }
     if (widget.activityData['ciclo']['datos_ciclo']['cos_rendi'] != null) {
       _cosRendiController.text = widget.activityData['ciclo']['datos_ciclo']['cos_rendi'].toString();

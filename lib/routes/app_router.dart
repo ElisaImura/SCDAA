@@ -11,6 +11,7 @@ import 'package:mspaa/screens/views/users_view.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
 import 'package:mspaa/screens/forms/edit_user_screen.dart';
+import 'package:mspaa/screens/views/activities_view.dart';
 
 class AppRouter {
   static GoRouter getRouter(bool isLoggedIn) {
@@ -63,6 +64,10 @@ class AppRouter {
             final user = state.extra as Map<String, dynamic>;
             return NoTransitionPage(child: EditUserView(user: user));
           },
+        ),
+        GoRoute(
+          path: '/actividades',
+          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: ActivitiesView())),
         ),
       ],
     );

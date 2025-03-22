@@ -81,8 +81,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     List<dynamic> insumos = actividadActual['ciclo']?['insumos'] ?? [];
     int tipoActividadId = actividadActual['tpAct_id'] ?? 0;
     double? densidadSemilla = tipoActividadId == 3 
-        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['sie_densidad'] != null
-            ? actividadActual['ciclo']['sie_densidad']?.toDouble() 
+        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['sie_densidad'] != null
+            ? actividadActual['ciclo']['datos_ciclo']['sie_densidad']?.toDouble() 
             : null 
         : null;
     int? cantidadPlantas = tipoActividadId == 4 

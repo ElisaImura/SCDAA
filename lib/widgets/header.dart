@@ -116,6 +116,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                                       _buildMenuItem(context, Icons.location_on, "Lotes", "/lotes"),
                                       _buildMenuItem(context, Icons.people, "Usuarios", "/usuarios"),
                                       _buildMenuItem(context, Icons.eco, "Cultivos y Variedades", "/cultivos"),
+                                      _buildMenuItem(context, Icons.assignment, "Actividades", "/actividades"),
                                       const Divider(),
                                       _buildMenuItem(context, Icons.logout, "Cerrar sesión", null, logout: true),
                                     ],

@@ -16,6 +16,7 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _tareas = [];
   List<Map<String, dynamic>> _ciclosActivos = [];
   List<Map<String, dynamic>> _usuarios = [];
+  List<Map<String, dynamic>> _actividades = [];
 
   bool _isLoadingUsuarios = false;
   bool isLoading = true;
@@ -34,6 +35,7 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get tareas => _tareas;
   List<Map<String, dynamic>> get ciclosActivos => _ciclosActivos;
   List<Map<String, dynamic>> get usuarios => _usuarios;
+  List<Map<String, dynamic>> get actividades => _actividades;
   bool get isLoadingUsuarios => _isLoadingUsuarios;
 
   ActivityProvider() {
@@ -314,6 +316,16 @@ class ActivityProvider extends ChangeNotifier {
 
     _isLoadingUsuarios = false;
     notifyListeners();
+  }
+
+  /// 🔹 Obtener todas las actividades
+  Future<void> fetchAllActividades() async {
+    try {
+      _actividades = await _apiService.fetchActividades();
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("❌ Error al obtener todas las actividades: $e");
+    }
   }
 
 }
