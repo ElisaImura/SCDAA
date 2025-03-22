@@ -750,4 +750,16 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       return false; // Fallo al crear usuario
     }
   }
+
+  // Funcion para obtener todos los climas
+  Future<List<Map<String, dynamic>>> getAllWeatherData() async {
+    final response = await http.get(Uri.parse('$baseUrl/clima'));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception('Failed to load weather data');
+    }
+  }
 }

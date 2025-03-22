@@ -24,6 +24,17 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
   DateTime _selectedDate = DateTime.now();
 
   @override
+  void initState() {
+    super.initState();
+
+    // Schedule the weather check after the frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
+      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Acceder al WeatherProvider correctamente
     final weatherProvider = Provider.of<WeatherProvider>(context);
@@ -41,7 +52,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDatePicker(),
+                    _buildDatePicker(weatherProvider),
                     const SizedBox(height: 20),
                     _buildVientoField(),
                     const SizedBox(height: 20),
@@ -59,7 +70,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
     );
   }
 
-  Widget _buildDatePicker() {
+  Widget _buildDatePicker(WeatherProvider weatherProvider) {
     return ListTile(
       title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
       trailing: const Icon(Icons.calendar_today),
@@ -74,6 +85,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
           setState(() {
             _selectedDate = pickedDate;
           });
+          await weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
         }
       },
     );
@@ -151,35 +163,40 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () async {
-          if (_formKey.currentState!.validate()) {
-            // Crear el objeto de datos del clima
-            Map<String, dynamic> weatherData = {
-              "cl_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
-              "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
-              "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
-              "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
-              "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
-            };
+        onPressed: weatherProvider.isWeatherAvailable // Check if the weather is already available
+            ? null  // Disable the button if the weather data already exists
+            : () async {
+                if (_formKey.currentState!.validate()) {
+                  // Crear el objeto de datos del clima
+                  Map<String, dynamic> weatherData = {
+                    "cl_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
+                    "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
+                    "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
+                    "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
+                    "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
+                  };
 
-            // Llamar al provider para guardar los datos del clima
-            bool success = await weatherProvider.addWeatherData(weatherData);
+                  // Llamar al provider para guardar los datos del clima
+                  bool success = await weatherProvider.addWeatherData(weatherData);
 
-            if (success) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Datos del clima guardados con éxito")));
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Datos del clima guardados con éxito")));
 
-              if (widget.isFromFooter) {
-                context.go('/home'); // Navigate to home if it's from footer
-              } else {
-                Navigator.pop(context); // Pop the screen if it's from the form
-              }
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar los datos del clima")));
-            }
-          }
-        },
-        child: const Text("Guardar Datos"),
+                    if (widget.isFromFooter) {
+                      context.go('/home'); // Navigate to home if it's from footer
+                    } else {
+                      Navigator.pop(context); // Pop the screen if it's from the form
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar los datos del clima")));
+                  }
+                }
+              },
+        child: weatherProvider.isWeatherAvailable  // Change button text based on weather availability
+            ? const Text("Clima ya registrado para esta fecha")
+            : const Text("Guardar Datos"),
       ),
     );
   }
+
 }

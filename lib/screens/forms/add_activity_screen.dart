@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
+import 'package:mspaa/providers/weather_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddActivityScreen extends StatefulWidget {
@@ -39,6 +40,11 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   @override
   void initState() {
     super.initState();
+    // Verifica si existe clima para la fecha seleccionada
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
+      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate)); // Verificar el clima para la fecha seleccionada
+    });
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
@@ -73,6 +79,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         if (pickedDate != null) {
           setState(() {
             _selectedDate = pickedDate;
+            // Verifica si existe clima para la fecha seleccionada
+            final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
+            weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
             if (_isFutureDate()) {
               _changeActivityState('Pendiente');
             }
@@ -84,6 +93,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final weatherProvider = Provider.of<WeatherProvider>(context);
     final activityProvider = Provider.of<ActivityProvider>(context);
 
     return Scaffold(
@@ -156,8 +166,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
-                    _buildAddWeatherButton(),
-                    const SizedBox(height: 10),
+                    // Mostrar el boton de agregar clima solo si no hay clima cargado anteriormente para la fecha
+                    if (!weatherProvider.isWeatherAvailable && !weatherProvider.isLoading)
+                      _buildAddWeatherButton(),
+                      const SizedBox(height: 10),
                     _buildSaveButton(),
                   ],
                 ),
@@ -324,14 +336,23 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               },
               onSelected: (suggestion) {
                 setState(() {
-                  _selectedInsumos.add({
-                    'ins_desc': suggestion['ins_desc'] ?? '',
-                    'ins_id': suggestion['ins_id'] ?? 0,
-                    'ins_cant': 0.0,
-                    'ins_unidad_medida': suggestion['ins_unidad_medida'] ?? '',
-                    'controller': TextEditingController(text: ''),
-                  });
-                  _newInsumoController.clear();
+                  // Check if the insumo already exists in the selected list
+                  bool alreadyExists = _selectedInsumos.any((insumo) => insumo['ins_desc'] == suggestion['ins_desc']);
+                  
+                  if (alreadyExists) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Este insumo ya fue agregado."))
+                    );
+                  } else {
+                    _selectedInsumos.add({
+                      'ins_desc': suggestion['ins_desc'] ?? '',
+                      'ins_id': suggestion['ins_id'] ?? 0,
+                      'ins_cant': 0.0,
+                      'ins_unidad_medida': suggestion['ins_unidad_medida'] ?? '',
+                      'controller': TextEditingController(text: ''),
+                    });
+                    _newInsumoController.clear();
+                  }
                 });
               },
             ),
@@ -385,17 +406,26 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             ElevatedButton.icon(
               onPressed: () {
                 if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
-                  setState(() {
-                    _selectedInsumos.add({
-                      'ins_desc': _newInsumoController.text,
-                      'ins_id': -1, // Identificador único para nuevos insumos
-                      'ins_cant': 0.0,
-                      'ins_unidad_medida': _unidadController.text,
-                      'controller': TextEditingController(text: ''),
+                  // Check if the new insumo already exists
+                  bool alreadyExists = _selectedInsumos.any((insumo) => insumo['ins_desc'] == _newInsumoController.text);
+
+                  if (alreadyExists) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Este insumo ya fue agregado."))
+                    );
+                  } else {
+                    setState(() {
+                      _selectedInsumos.add({
+                        'ins_desc': _newInsumoController.text,
+                        'ins_id': -1, // Identificador único para nuevos insumos
+                        'ins_cant': 0.0,
+                        'ins_unidad_medida': _unidadController.text,
+                        'controller': TextEditingController(text: ''),
+                      });
+                      _newInsumoController.clear();
+                      _unidadController.clear();
                     });
-                    _newInsumoController.clear();
-                    _unidadController.clear();
-                  });
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("El nombre del insumo y la unidad de medida no pueden estar vacíos")),

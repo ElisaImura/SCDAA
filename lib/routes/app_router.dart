@@ -45,7 +45,7 @@ class AppRouter {
         ),
         GoRoute(
           path: '/add-activity',
-          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const AddActivityScreen())),
+          pageBuilder: (context, state) => NoTransitionPage(child: const AddActivityScreen()),
         ),
         GoRoute(
           path: '/add-cycle',

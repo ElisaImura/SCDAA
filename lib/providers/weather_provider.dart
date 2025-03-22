@@ -5,7 +5,10 @@ class WeatherProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   bool _isLoading = false;
+  bool _isWeatherAvailable = false;
+
   bool get isLoading => _isLoading;
+  bool get isWeatherAvailable => _isWeatherAvailable;
 
   // Función para agregar datos del clima
   Future<bool> addWeatherData(Map<String, dynamic> weatherData) async {
@@ -25,5 +28,24 @@ class WeatherProvider with ChangeNotifier {
       if (kDebugMode) print("❌ Error al agregar datos del clima: $e");
       return false;
     }
+  }
+
+  // Funcion para verificar si ya existe un clima en esa fecha
+  Future<void> checkWeatherForDate(String date) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final weatherData = await ApiService().getAllWeatherData();
+      _isWeatherAvailable = weatherData.any((clima) => clima['cl_fecha'] == date);  
+
+    } catch (e) {
+      _isWeatherAvailable = false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+
+    print('Clima disponible: $_isWeatherAvailable');
   }
 }
