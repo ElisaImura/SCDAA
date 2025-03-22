@@ -231,7 +231,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _showDeleteConfirmationDialog,
                   icon: const Icon(Icons.delete),
                   label: const Text("Eliminar"),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -256,4 +256,48 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       });
     }
   }
+
+  //Metodo para mostrar el dialogo de confirmación de eliminación
+  void _showDeleteConfirmationDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("¿Estás seguro?"),
+          content: const Text("Esta acción eliminará permanentemente la actividad."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cerrar el diálogo
+              },
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Cerrar el diálogo
+                // Llamar a la función para eliminar la actividad
+                _deleteActivity();
+              },
+              child: const Text("Eliminar"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método de eliminación de actividad
+  void _deleteActivity() async {
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    
+    bool success = await activityProvider.deleteActivity(actividadActual['act_id']);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Actividad eliminada con éxito")));
+      Navigator.pop(context, true); // Volver a la lista de actividades
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al eliminar la actividad")));
+    }
+  }
+
 }

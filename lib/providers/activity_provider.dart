@@ -329,4 +329,21 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  // Método para eliminar una actividad
+  Future<bool> deleteActivity(int activityId) async {
+    try {
+      bool success = await _apiService.deleteActivity(activityId);
+      
+      if (success) {
+        // Si la eliminación fue exitosa, se puede notificar que la actividad fue eliminada
+        notifyListeners();
+      }
+      
+      return success;
+    } catch (error) {
+      print("Error al eliminar actividad Provider: $error");
+      return false;
+    }
+  }
+
 }

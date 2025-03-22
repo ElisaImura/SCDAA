@@ -762,4 +762,22 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       throw Exception('Failed to load weather data');
     }
   }
+
+  // Método para eliminar una actividad
+  Future<bool> deleteActivity(int activityId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/actividades/$activityId'),
+      headers: {
+        'Content-Type': 'application/json',
+        // Agrega tu token si es necesario para la autenticación
+        'Authorization': 'Bearer tu_token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return true;  // Actividad eliminada con éxito
+    } else {
+      return false;  // Error al eliminar la actividad
+    }
+  }
 }
