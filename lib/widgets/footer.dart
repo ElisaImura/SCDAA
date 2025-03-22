@@ -80,7 +80,8 @@ class Footer extends StatelessWidget {
                 Icons.cloud,
                 "Agregar Solo Clima",
                 const Color.fromARGB(255, 35, 129, 41),
-                '/add-weather',
+                '/add-weather', // Ruta correcta para AddWeatherScreen
+                isFromFooter: true, // Pasa la flag extra para saber que es desde el footer
               ),
             ],
           ),
@@ -90,10 +91,14 @@ class Footer extends StatelessWidget {
   }
 
   // Widget para crear los botones del cuadro de diálogo
-  Widget _buildDialogButton(BuildContext context, IconData icon, String label, Color color, String route) {
+  Widget _buildDialogButton(BuildContext context, IconData icon, String label, Color color, String route, {bool isFromFooter = false}) {
     return ElevatedButton(
       onPressed: () {
-        context.go(route); // Navegar a la ruta correspondiente
+        if (route == '/add-weather') {
+          context.push(route, extra: {'isFromFooter': isFromFooter}); // Pass extra for weather
+        } else {
+          context.push(route); // Normal navigation without extra data
+        }
         Navigator.pop(context); // Cerrar el diálogo
       },
       style: ElevatedButton.styleFrom(

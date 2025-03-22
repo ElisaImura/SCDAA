@@ -7,7 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:mspaa/providers/weather_provider.dart'; // Asegúrate de importar el WeatherProvider
 
 class AddWeatherScreen extends StatefulWidget {
-  const AddWeatherScreen({super.key});
+  final bool isFromFooter;
+  const AddWeatherScreen({super.key, this.isFromFooter = false});
 
   @override
   _AddWeatherScreenState createState() => _AddWeatherScreenState();
@@ -166,7 +167,12 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
 
             if (success) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Datos del clima guardados con éxito")));
-              context.go('/home'); // Regresar a la pantalla anterior
+
+              if (widget.isFromFooter) {
+                context.go('/home'); // Navigate to home if it's from footer
+              } else {
+                Navigator.pop(context); // Pop the screen if it's from the form
+              }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar los datos del clima")));
             }

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mspaa/screens/forms/add_activity_screen.dart';
 import 'package:mspaa/screens/main/calendar_screen.dart';
@@ -52,7 +53,13 @@ class AppRouter {
         ),
         GoRoute(
           path: '/add-weather',
-          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const AddWeatherScreen())),
+          builder: (BuildContext context, GoRouterState state) {
+            // Check if extra data is passed and handle accordingly
+            final extra = state.extra as Map<String, dynamic>?;
+            final bool isFromFooter = extra != null && extra['isFromFooter'] == true;
+
+            return AddWeatherScreen(isFromFooter: isFromFooter); // Pass the flag to the screen
+          },
         ),
         GoRoute(
           path: '/usuarios',

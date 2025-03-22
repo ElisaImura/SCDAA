@@ -156,6 +156,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
+                    _buildAddWeatherButton(),
+                    const SizedBox(height: 10),
                     _buildSaveButton(),
                   ],
                 ),
@@ -182,14 +184,45 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         }),
         const DropdownMenuItem(value: "nuevo", child: Text("➕ Crear nuevo ciclo")),
       ],
-      onChanged: (value) {
-        setState(() {
-          if (value == "nuevo") {
-            context.push('/add-cycle');
-          } else {
+      onChanged: (value) async {
+        if (value == "nuevo") {
+          context.push('/add-cycle');
+        } else {
+          setState(() {
             _selectedCiclo = value;
+          });
+
+          // Verificar si el tipo de actividad es "Siembra"
+          if (_selectedTipoActividad == "3") {
+            final cicloSeleccionado = _selectedCiclo;
+            if (cicloSeleccionado != null) {
+              // Espera a que las actividades se carguen
+              await activityProvider.fetchAllActividades();  // Espera a que se carguen las actividades
+              print("Actividades cargadas: ${activityProvider.actividades}");
+
+              // Verificar si ya existe una actividad de Siembra para el ciclo seleccionado
+              final actividadExistente = activityProvider.actividades.firstWhere(
+                (actividad) =>
+                    actividad['tpAct_id'] == 3 && // Si es tipo "Siembra"
+                    actividad['ciclo']['ci_id'] == int.parse(cicloSeleccionado), // Si el ciclo coincide
+                orElse: () => {}, // Retorna un mapa vacío si no hay coincidencia
+              );
+
+              print('En ciclo: $actividadExistente');
+
+              if (actividadExistente.isNotEmpty) {
+                // Si ya existe una actividad de "Siembra" para este ciclo
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Ya existe una actividad de Siembra para este ciclo")),
+                );
+                // Evitar que el usuario seleccione "Siembra" en este ciclo
+                setState(() {
+                  _selectedTipoActividad = null;  // Volver al valor por defecto o cualquier otra lógica
+                });
+              }
+            }
           }
-        });
+        }
       },
     );
   }
@@ -204,10 +237,41 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           child: Text(tipo["tpAct_nombre"]),
         );
       }).toList(),
-      onChanged: (value) {
+      onChanged: (value) async {
         setState(() {
           _selectedTipoActividad = value;
         });
+
+        // Verificar si el tipo de actividad es "Siembra"
+        if (_selectedTipoActividad == "3") {
+          final cicloSeleccionado = _selectedCiclo;
+          if (cicloSeleccionado != null) {
+            // Espera a que las actividades se carguen
+            await activityProvider.fetchAllActividades();  // Espera a que se carguen las actividades
+            print("Actividades cargadas: ${activityProvider.actividades}");
+
+            // Verificar si ya existe una actividad de Siembra para el ciclo seleccionado
+            final actividadExistente = activityProvider.actividades.firstWhere(
+              (actividad) =>
+                  actividad['tpAct_id'] == 3 && // Si es tipo "Siembra"
+                  actividad['ciclo']['ci_id'] == int.parse(cicloSeleccionado), // Si el ciclo coincide
+              orElse: () => {}, // Retorna un mapa vacío si no hay coincidencia
+            );
+
+            print('En tipo actividad: $actividadExistente');
+
+            if (actividadExistente.isNotEmpty) {
+              // Si ya existe una actividad de "Siembra" para este ciclo
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Ya existe una actividad de Siembra para este ciclo")),
+              );
+              // Evitar que el usuario seleccione "Siembra" en este ciclo
+              setState(() {
+                _selectedTipoActividad = null;  // Volver al valor por defecto o cualquier otra lógica
+              });
+            }
+          }
+        }
       },
     );
   }
@@ -511,6 +575,19 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             _conVigor = value!;
           });
         },
+      ),
+    );
+  }
+
+  Widget _buildAddWeatherButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          // Navegar a la pantalla de agregar clima
+          context.push('/add-weather'); // Esto abre la pantalla AddWeatherScreen
+        },
+        child: const Text("Agregar Clima"),
       ),
     );
   }
