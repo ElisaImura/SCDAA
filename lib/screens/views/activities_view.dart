@@ -113,8 +113,8 @@ class _ActivitiesViewState extends State<ActivitiesView> {
                       children: [
                         Icon(Icons.location_on, color: Colors.red, size: 18),
                         SizedBox(width: 6),
-                        Text('Lote: ${lote['lot_nombre']}',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+                        Text('Lote: ${lote != null ? lote['lot_nombre'] : 'Desconocido'}',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[700])),
                       ],
                     ),
                     SizedBox(height: 8),

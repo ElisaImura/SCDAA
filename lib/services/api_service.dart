@@ -156,7 +156,7 @@ class ApiService {
 
   /// 🔹 Agregar una nueva actividad a la API
   Future<bool> addActivity(Map<String, dynamic> activityData) async {
-    final String? token = await _getToken(); // ✅ Obtener token del usuario autenticado
+    final String? token = await _getToken();
 
     final response = await http.post(
       Uri.parse("$baseUrl/actividades"),
@@ -212,7 +212,14 @@ Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
 
   /// 🔹 Obtener las variedades de un tipo de cultivo
   Future<List<Map<String, dynamic>>> fetchVariedades(int tpCulId) async {
-    final response = await http.get(Uri.parse("$baseUrl/variedades/$tpCulId")); // ✅ Ahora envía el ID correcto
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/variedades/$tpCulId"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -439,8 +446,15 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Función para obtener los datos del clima
   Future<List<Map<String, dynamic>>> fetchClima() async {
+    final String? token = await _getToken();
     try {
-      final response = await http.get(Uri.parse("$baseUrl/clima"));
+      final response = await http.get(
+        Uri.parse("$baseUrl/clima"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -728,7 +742,14 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Funcion para obtener todos los climas
   Future<List<Map<String, dynamic>>> getAllWeatherData() async {
-    final response = await http.get(Uri.parse('$baseUrl/clima'));
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/clima'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -740,12 +761,12 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Método para eliminar una actividad
   Future<bool> deleteActivity(int activityId) async {
+    final String? token = await _getToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/actividades/$activityId'),
       headers: {
         'Content-Type': 'application/json',
-        // Agrega tu token si es necesario para la autenticación
-        'Authorization': 'Bearer tu_token',
+        'Authorization': 'Bearer $token',
       },
     );
 
@@ -783,7 +804,14 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Método para obtener todos los lotes
   Future<List<dynamic>> getLotes() async {
-    final response = await http.get(Uri.parse('$baseUrl/lotes'));
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/lotes'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
 
     if (response.statusCode == 200) {
       // Si la respuesta es exitosa, decodificamos los datos
@@ -796,9 +824,13 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Método para editar un lote
   Future<bool> editLote(int loteId, Map<String, dynamic> loteData) async {
+    final String? token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/lotes/$loteId'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: json.encode(loteData),
     );
 
@@ -811,12 +843,91 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Método para eliminar un lote
   Future<bool> deleteLote(int loteId) async {
-    final response = await http.delete(Uri.parse('$baseUrl/lotes/$loteId'));
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/lotes/$loteId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
       return true;
     } else {
       throw Exception('Error al eliminar el lote');
     }
+  }
+
+  // Obtener insumos desde la API
+  Future<List<Map<String, dynamic>>> getInsumos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/insumos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // Si usas autenticación
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception('Error al obtener insumos');
+    }
+  }
+
+  // Agregar un nuevo insumo
+  Future<int?> addInsumo(Map<String, dynamic> insumoData) async {
+    insumoData['ins_desc'] = insumoData['ins_desc'].toString();
+    insumoData['ins_unidad_medida'] = insumoData['ins_unidad_medida'].toString();
+
+    final bodyData = jsonEncode(insumoData);
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/insumos'),
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': 'Bearer <your-token>',
+      },
+      body: bodyData,
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data['ins_id']; // Retorna el ID del insumo recién creado
+    } else {
+      throw Exception('Error al agregar el insumo');
+    }
+  }
+
+  // Editar un insumo existente
+  Future<bool> editInsumo(int insumoId, Map<String, dynamic> insumoData) async {
+    final bodyData = jsonEncode(insumoData);
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/insumos/$insumoId'),
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': 'Bearer <your-token>',
+      },
+      body: bodyData,
+    );
+
+    return response.statusCode == 200; // Si la respuesta es 200, la edición fue exitosa
+  }
+
+  // Eliminar un insumo
+  Future<bool> deleteInsumo(int insumoId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/insumos/$insumoId'),
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': 'Bearer <your-token>',
+      },
+    );
+
+    return response.statusCode == 200; // Si la respuesta es 200, la eliminación fue exitosa
   }
 }

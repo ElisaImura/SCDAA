@@ -150,11 +150,23 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                           }),
                         const DropdownMenuItem(value: "nuevo", child: Text("➕ Nuevo Lote")),
                       ],
-                      onChanged: (value) {
+                      onChanged: (value) async {
                         setState(() {
                           _selectedLote = value;
                           _mostrarNuevoLote = value == "nuevo";
                         });
+
+                        if (value != null && value != "nuevo") {
+                          bool hasActiveCycle = await activityProvider.checkActiveCycle(int.parse(value));
+                          if (hasActiveCycle) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
+                            );
+                            setState(() {
+                              _selectedLote = null;
+                            });
+                          }
+                        }
                       },
                     ),
                     const SizedBox(height: 15),
