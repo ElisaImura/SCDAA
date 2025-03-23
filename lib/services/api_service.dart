@@ -177,7 +177,7 @@ class ApiService {
     }
   }
 
-    /// 🔹 Obtener los tipos de actividades desde la API
+  /// 🔹 Obtener los tipos de actividades desde la API
   Future<List<Map<String, dynamic>>> fetchTiposActividades() async {
     final String? token = await _getToken();
     final response = await http.get(
@@ -191,24 +191,24 @@ class ApiService {
     return _handleResponse(response).cast<Map<String, dynamic>>();
   }
   
-    /// 🔹 Obtener los tipos de cultivos desde la API
-Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
-  final String? token = await _getToken();
-  final response = await http.get(
-    Uri.parse("$baseUrl/tipos/cultivo"),
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer $token",
-    },
-  );
+  /// 🔹 Obtener los tipos de cultivos desde la API
+  Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/tipos/cultivo"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
 
-  if (response.statusCode == 200) {
-    final List<dynamic> data = json.decode(response.body);
-    return data.cast<Map<String, dynamic>>();
-  } else {
-    throw Exception("Error al obtener tipos de cultivos");
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception("Error al obtener tipos de cultivos");
+    }
   }
-}
 
   /// 🔹 Obtener las variedades de un tipo de cultivo
   Future<List<Map<String, dynamic>>> fetchVariedades(int tpCulId) async {
@@ -276,33 +276,6 @@ Future<List<Map<String, dynamic>>> fetchTiposCultivos() async {
       return false; // Si ocurre un error, retorna false
     }
   }
-
-  /// 🔹 Agregar una nueva variedad a la API
-Future<int?> addVariedad(String nombre, String cultivoId) async {
-  final String? token = await _getToken();
-
-  // Crea el objeto JSON
-  final bodyData = jsonEncode({
-    "tpCul_id": int.parse(cultivoId),
-    "tpVar_nombre": nombre,
-  });
-
-  final response = await http.post(
-    Uri.parse("$baseUrl/tipos/variedad"),
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer $token",
-    },
-    body: bodyData,
-  );
-
-  if (response.statusCode == 201) {
-    final data = jsonDecode(response.body);
-    return data["tpVar_id"]; // Retorna el ID de la nueva variedad
-  }
-  return null;
-}
-
 
   /// 🔹 Obtener el ID del usuario autenticado
   Future<int?> getLoggedUserId() async {
@@ -978,5 +951,150 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     );
 
     return response.statusCode == 200;
+  }
+
+  // Agregar los tipos de cultivos
+  Future<bool> addCultivo(String nombre) async {
+    final String? token = await _getToken();
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/tipos/cultivo'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'tpCul_nombre': nombre}),
+      );
+
+      if (response.statusCode == 201) {
+        return true;
+      } else {
+        print('Error al agregar cultivo: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error al hacer POST de cultivo: $e');
+      return false;
+    }
+  }
+
+  // Obtener los tipos de cultivos
+  Future<List<Map<String, dynamic>>> fetchCultivos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/tipos/cultivo'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Error al obtener los cultivos');
+    }
+  }
+
+  // Editar un cultivo
+  Future<bool> editCultivo(int id, Map<String, dynamic> data) async {
+    final String? token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/tipos/cultivo/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(data),
+    );
+    return response.statusCode == 200;
+  }
+
+  // Eliminar un cultivo
+  Future<bool> deleteCultivo(int id) async {
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/tipos/cultivo/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return response.statusCode == 200;
+  }
+
+  /// 🔹 Agregar una nueva variedad a la API
+  Future<int?> addVariedad(String nombre, int cultivoId) async {
+    final String? token = await _getToken();
+
+    // Crea el objeto JSON
+    final bodyData = jsonEncode({
+      "tpCul_id": cultivoId,
+      "tpVar_nombre": nombre,
+    });
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/tipos/variedad"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: bodyData,
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data["tpVar_id"]; // Retorna el ID de la nueva variedad
+    }
+    return null;
+  }
+  
+  // Editar variedad
+  Future<bool> editVariedad(int variedadId, Map<String, dynamic> variedadData) async {
+    final String? token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/tipos/variedad/$variedadId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(variedadData),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  // Eliminar variedad
+  Future<bool> deleteVariedad(int variedadId) async {
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/tipos/variedad/$variedadId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    return response.statusCode == 200;
+  }
+
+  // 🔹 Obtener las variedades de un tipo de cultivo
+  Future<List<Map<String, dynamic>>> fetchVariedadesPorCultivo(int cultivoId) async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/variedades/$cultivoId"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception("Error al obtener variedades por cultivo");
+    }
   }
 }

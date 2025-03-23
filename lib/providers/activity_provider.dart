@@ -104,7 +104,7 @@ class ActivityProvider extends ChangeNotifier {
   }
 
   /// 🔹 Agregar una nueva variedad
-  Future<int?> addVariedad(String nombre, String cultivoId) async {
+  Future<int?> addVariedad(String nombre, int cultivoId) async {
     int? variedadId = await _apiService.addVariedad(nombre, cultivoId);
     if (variedadId != null) {
       _variedades.add({"var_id": variedadId, "tpCul_id": cultivoId, "var_nombre": nombre});

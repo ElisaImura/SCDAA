@@ -9,6 +9,7 @@ import 'package:mspaa/screens/main/home_screen.dart';
 import 'package:mspaa/screens/login_screen.dart';
 import 'package:mspaa/screens/main/reports_screen.dart';
 import 'package:mspaa/screens/views/ciclos_view.dart';
+import 'package:mspaa/screens/views/cultivos_view.dart';
 import 'package:mspaa/screens/views/insumos_view.dart';
 import 'package:mspaa/screens/views/lotes_view.dart';
 import 'package:mspaa/screens/views/users_view.dart';
@@ -90,6 +91,10 @@ class AppRouter {
         GoRoute(
           path: '/ciclos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: CiclosView())),
+        ),
+        GoRoute(
+          path: '/cultivos',
+          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: CultivosView())),
         ),
       ],
     );

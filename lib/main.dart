@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
+import 'package:mspaa/providers/cultivos_variedades_provider.dart';
 import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:mspaa/providers/insumos_provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
@@ -34,6 +35,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LotesProvider()),
         ChangeNotifierProvider(create: (_) => InsumosProvider()),
         ChangeNotifierProvider(create: (_) => CycleProvider()),
+        ChangeNotifierProvider(create: (_) => CultivosVariedadesProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn), // Usar MyApp con el isLoggedIn como parámetro
     ),
