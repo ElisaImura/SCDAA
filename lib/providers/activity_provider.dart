@@ -14,7 +14,6 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _insumos = [];
   List<Map<String, dynamic>> _actividadesRecientes = [];
   List<Map<String, dynamic>> _tareas = [];
-  List<Map<String, dynamic>> _ciclosActivos = [];
   List<Map<String, dynamic>> _usuarios = [];
   List<Map<String, dynamic>> _actividades = [];
 
@@ -22,9 +21,7 @@ class ActivityProvider extends ChangeNotifier {
   bool isLoading = true;
   bool isLoadingVariedades = false;
   
-  Map<String, dynamic>? ciclo;
   Map<String, dynamic>? actividadActual;
-
   List<Map<String, dynamic>> get ciclos => _ciclos;
   List<Map<String, dynamic>> get tiposActividades => _tiposActividades;
   List<Map<String, dynamic>> get tiposCultivos => _tiposCultivos;
@@ -33,7 +30,6 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get insumos => _insumos;
   List<Map<String, dynamic>> get actividadesRecientes => _actividadesRecientes;
   List<Map<String, dynamic>> get tareas => _tareas;
-  List<Map<String, dynamic>> get ciclosActivos => _ciclosActivos;
   List<Map<String, dynamic>> get usuarios => _usuarios;
   List<Map<String, dynamic>> get actividades => _actividades;
   bool get isLoadingUsuarios => _isLoadingUsuarios;
@@ -107,13 +103,6 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Agregar un nuevo ciclo
-  Future<bool> addCiclo(Map<String, dynamic> cicloData) async {
-    bool success = await _apiService.addCiclo(cicloData);
-    if (success) await _fetchCiclosYActividades(); // ✅ Solo recarga ciclos y actividades
-    return success;
-  }
-
   /// 🔹 Agregar una nueva variedad
   Future<int?> addVariedad(String nombre, String cultivoId) async {
     int? variedadId = await _apiService.addVariedad(nombre, cultivoId);
@@ -163,31 +152,6 @@ class ActivityProvider extends ChangeNotifier {
       notifyListeners(); // Notificamos para que la UI se actualice
     }
     return loteId;
-  }
-
-  /// 🔹 Verificar si el lote tiene un ciclo activo
-  Future<bool> checkActiveCycle(int lotId) async {
-    return await _apiService.hasActiveCycle(lotId); // Llamamos al método del ApiService
-  }
-
-  // 🔹 Cargar los ciclos activos
-  Future<void> fetchCiclosActivos() async {
-    try {
-      _ciclosActivos = await _apiService.fetchCiclosActivos(); // Llamada al ApiService para obtener los ciclos activos
-      notifyListeners();
-    } catch (e) {
-      if (kDebugMode) print("❌ Error al obtener ciclos activos: $e");
-    }
-  }
-
-  // 🔹 Cargar un ciclo específico
-  Future<void> fetchCicloEspecifico(int id) async {
-    try {
-      ciclo = await _apiService.fetchCicloSpecific(id); // ✅ Llamada correcta con ID
-      notifyListeners();
-    } catch (e) {
-      if (kDebugMode) print("❌ Error al obtener el ciclo específico: $e");
-    }
   }
 
   /// 🔹 Cargar las últimas 3 actividades registradas, ordenadas por la fecha de actividad

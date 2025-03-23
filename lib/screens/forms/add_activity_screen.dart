@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
@@ -48,7 +49,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-      activityProvider.fetchCiclosActivos();
+      final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
+      cycleProvider.fetchCiclosActivos();
       activityProvider.fetchUsuarios();
     });
     
@@ -95,6 +97,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   Widget build(BuildContext context) {
     final weatherProvider = Provider.of<WeatherProvider>(context);
     final activityProvider = Provider.of<ActivityProvider>(context);
+    final cycleProvider = Provider.of<CycleProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -152,7 +155,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   children: [
                     _buildDatePicker(),
                     const SizedBox(height: 20),
-                    _buildCicloDropdown(activityProvider),
+                    _buildCicloDropdown(activityProvider, cycleProvider),
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
                     const SizedBox(height: 20),
@@ -178,12 +181,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
  
-  Widget _buildCicloDropdown(ActivityProvider activityProvider) {
+  Widget _buildCicloDropdown(ActivityProvider activityProvider, CycleProvider cycleProvider) {
     return DropdownButtonFormField<String>(
       value: _selectedCiclo,
       decoration: const InputDecoration(labelText: "Ciclo", border: OutlineInputBorder()),
       items: [
-        ...activityProvider.ciclosActivos.map((ciclo) {  // Usamos ciclosActivos en lugar de ciclos
+        ...cycleProvider.ciclosActivos.map((ciclo) {  // Usamos ciclosActivos en lugar de ciclos
           String loteName = activityProvider.lotes.isNotEmpty
               ? activityProvider.lotes.firstWhere(
                   (lote) => lote['lot_id'] == ciclo['lot_id'],

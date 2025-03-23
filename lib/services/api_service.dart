@@ -357,6 +357,27 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
     return ciclosActivos;
   }
 
+  /// 🔹 Obtener los ciclos inactivos (con `ci_fechafin`)
+  Future<List<Map<String, dynamic>>> fetchCiclosInactivos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/ciclos"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    List<dynamic> data = _handleResponse(response);
+    // Filtramos los ciclos para obtener solo aquellos que tienen ci_fechafin
+    List<Map<String, dynamic>> ciclosInactivos = data
+        .where((ciclo) => ciclo["ci_fechafin"] != null)
+        .toList()
+        .cast<Map<String, dynamic>>();
+    
+    return ciclosInactivos;
+  }
+
   /// 🔹 Obtener las próximas tareas (actividades con fecha de inicio futura)
   Future<List<Map<String, dynamic>>> fetchProximasTareas() async {
     final String? token = await _getToken();
@@ -866,7 +887,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       Uri.parse('$baseUrl/insumos'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', // Si usas autenticación
+        'Authorization': 'Bearer $token',
       },
     );
 
@@ -880,6 +901,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Agregar un nuevo insumo
   Future<int?> addInsumo(Map<String, dynamic> insumoData) async {
+    final String? token = await _getToken();
     insumoData['ins_desc'] = insumoData['ins_desc'].toString();
     insumoData['ins_unidad_medida'] = insumoData['ins_unidad_medida'].toString();
 
@@ -889,7 +911,7 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
       Uri.parse('$baseUrl/insumos'),
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': 'Bearer <your-token>',
+        'Authorization': 'Bearer $token',
       },
       body: bodyData,
     );
@@ -904,30 +926,57 @@ Future<int?> addVariedad(String nombre, String cultivoId) async {
 
   // Editar un insumo existente
   Future<bool> editInsumo(int insumoId, Map<String, dynamic> insumoData) async {
+    final String? token = await _getToken();
     final bodyData = jsonEncode(insumoData);
 
     final response = await http.put(
       Uri.parse('$baseUrl/insumos/$insumoId'),
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': 'Bearer <your-token>',
+        'Authorization': 'Bearer $token',
       },
       body: bodyData,
     );
 
-    return response.statusCode == 200; // Si la respuesta es 200, la edición fue exitosa
+    return response.statusCode == 200; 
   }
 
   // Eliminar un insumo
   Future<bool> deleteInsumo(int insumoId) async {
+    final String? token = await _getToken();
     final response = await http.delete(
       Uri.parse('$baseUrl/insumos/$insumoId'),
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization': 'Bearer <your-token>',
+        'Authorization': 'Bearer $token',
       },
     );
 
-    return response.statusCode == 200; // Si la respuesta es 200, la eliminación fue exitosa
+    return response.statusCode == 200;
+  }
+
+  // 🔹 Editar un ciclo
+  Future<bool> editCiclo(int id, Map<String, dynamic> cicloData) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/ciclos/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(cicloData),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  // Eliminar un insumo
+  Future<bool> deleteCiclo(int cicloId) async {
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/ciclos/$cicloId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    return response.statusCode == 200;
   }
 }

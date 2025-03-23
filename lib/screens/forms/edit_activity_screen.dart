@@ -5,6 +5,7 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mspaa/providers/activity_provider.dart';
+import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -57,10 +58,11 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     print('Usuario: $_ussId');
 
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
 
     // ✅ Llamar a los fetchers de manera diferida para evitar conflictos con el árbol de widgets
     Future.delayed(Duration.zero, () {
-      activityProvider.fetchCiclosActivos();
+      cycleProvider.fetchCiclosActivos();
       activityProvider.fetchUsuarios();
     });
 
@@ -103,6 +105,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
+    final cycleProvider = Provider.of<CycleProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -163,7 +166,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                   children: [
                     _buildDatePicker(),
                     const SizedBox(height: 20),
-                    _buildCicloText(activityProvider),
+                    _buildCicloText(activityProvider, cycleProvider),
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
                     const SizedBox(height: 20),
@@ -351,14 +354,14 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     );
   }
 
-  Widget _buildCicloText(ActivityProvider activityProvider) {
+  Widget _buildCicloText(ActivityProvider activityProvider, CycleProvider cycleProvider) {
     String cicloNombre = "Cargando...";
 
     // Buscar el nombre del ciclo seleccionado
     if (_selectedCiclo != null) {
-      var ciclo = activityProvider.ciclosActivos.firstWhere(
+      var ciclo = cycleProvider.ciclosActivos.firstWhere(
         (c) => c["ci_id"].toString() == _selectedCiclo,
-        orElse: () => activityProvider.ciclo ?? {},
+        orElse: () => cycleProvider.ciclo ?? {},
       );
 
       if (ciclo.isNotEmpty) {

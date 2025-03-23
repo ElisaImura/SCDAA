@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 
@@ -18,14 +19,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadData();
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    activityProvider.fetchCiclosActivos();
+    final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
+    cycleProvider.fetchCiclosActivos();
     activityProvider.fetchActividadesRecientes();
     activityProvider.fetchTareas();
   }
 
   void _loadData() async {
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    await activityProvider.fetchCiclosActivos();
+    final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
+    await cycleProvider.fetchCiclosActivos();
     await activityProvider.fetchActividadesRecientes();
     await activityProvider.fetchTareas();
     if (mounted) {
@@ -62,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
+    final cycleProvider = Provider.of<CycleProvider>(context);
     String fechaHoy = DateFormat('EEEE, d MMMM y', 'es').format(DateTime.now());
 
     // Obtener las actividades recientes desde el provider
@@ -116,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCiclosActivos(activityProvider.ciclosActivos, fechaHoy),
+                _buildCiclosActivos(cycleProvider.ciclosActivos, fechaHoy),
                 const SizedBox(height: 20),
                 _buildSeccion("Actividades Recientes", actividadesRecientes.isEmpty
                     ? [const SizedBox(height: 10), Text("No hay actividades para mostrar.", style: TextStyle(fontSize: 16, color: Colors.grey))]

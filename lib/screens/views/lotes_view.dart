@@ -23,6 +23,45 @@ class _LotesViewState extends State<LotesView> {
     });
   }
 
+  Future<void> _showDeleteConfirmationDialog(BuildContext context, int loteId) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar Lote'),
+          content: const Text('¿Estás seguro de eliminar este lote?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final provider = Provider.of<LotesProvider>(context, listen: false);
+                final isDeleted = await provider.deleteLote(loteId);
+                Navigator.of(context).pop();
+                if (isDeleted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Lote eliminado con éxito')),
+                  );
+                  await provider.fetchLotes();
+                  setState(() {});
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error al eliminar el lote')),
+                  );
+                }
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,21 +172,8 @@ class _LotesViewState extends State<LotesView> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () async {
-                                    // Lógica para eliminar el lote
-                                    final isDeleted = await Provider.of<LotesProvider>(context, listen: false).deleteLote(lot['lot_id']);
-                                    if (isDeleted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Lote eliminado con éxito')),
-                                      );
-                                      // Recargar la lista de lotes después de eliminar
-                                      await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
-                                      setState(() {});
-                                    } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Error al eliminar el lote')),
-                                      );
-                                    }
+                                  onPressed: () {
+                                    _showDeleteConfirmationDialog(context, lot['lot_id']);
                                   },
                                 ),
                               ],

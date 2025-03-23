@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 
@@ -28,6 +29,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
+    final cycleProvider = Provider.of<CycleProvider>(context);
 
     return Scaffold(
       appBar: AppBar(title: Text("Nuevo Ciclo")),
@@ -157,7 +159,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                         });
 
                         if (value != null && value != "nuevo") {
-                          bool hasActiveCycle = await activityProvider.checkActiveCycle(int.parse(value));
+                          bool hasActiveCycle = await cycleProvider.checkActiveCycle(int.parse(value));
                           if (hasActiveCycle) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
@@ -199,7 +201,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               );
                             } else {
                               // Verificar si el lote ya tiene un ciclo activo
-                              bool hasActiveCycle = await activityProvider.checkActiveCycle(int.parse(_selectedLote!));
+                              bool hasActiveCycle = await cycleProvider.checkActiveCycle(int.parse(_selectedLote!));
 
                               if (hasActiveCycle) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -243,7 +245,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                             };
 
                             // Llamar a la función addCiclo
-                            bool success = await activityProvider.addCiclo(cicloData);
+                            bool success = await cycleProvider.addCiclo(cicloData);
 
                             if (success) {
                               ScaffoldMessenger.of(context).showSnackBar(
