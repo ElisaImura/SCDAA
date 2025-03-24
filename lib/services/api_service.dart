@@ -438,6 +438,45 @@ class ApiService {
     }
   }
 
+  // Funcion para editar los datos del clima
+  Future<bool> editWeather(int id, Map<String, dynamic> updatedData) async {
+    try {
+      final String? token = await _getToken();
+
+      final response = await http.put(
+        Uri.parse("$baseUrl/clima/$id"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(updatedData),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("❌ Error en ApiService al editar clima: $e");
+      return false;
+    }
+  }
+
+  // Función para eliminar los datos del clima
+  Future<bool> deleteWeather(int id) async {
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/clima/$id'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return true;  // Datos del clima eliminados con éxito
+    } else {
+      return false;  // Error al eliminar los datos del clima
+    }
+  }
+
   // Función para obtener los datos del clima
   Future<List<Map<String, dynamic>>> fetchClima() async {
     final String? token = await _getToken();

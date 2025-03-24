@@ -1,6 +1,8 @@
-// ignore_for_file: library_private_types_in_public_api, deprecated_member_use
+// ignore_for_file: library_private_types_in_public_api, deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/weather_provider.dart';
+import 'package:mspaa/screens/forms/edit_weather_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/screens/views/act_detail_screen.dart';
@@ -129,28 +131,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildWeatherSection(CalendarProvider calendarProvider) {
-    if (_selectedDay == null) {
-      return const SizedBox();
-    }
+    if (_selectedDay == null) return const SizedBox();
 
     DateTime fechaNormalizada = DateTime.utc(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
     final clima = calendarProvider.weather[fechaNormalizada];
 
-    if (clima == null) {
-      return const SizedBox();
-    }
+    if (clima == null) return const SizedBox();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: const Color.fromARGB(255, 202, 221, 192), // Fondo celeste suave
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildWeatherItem('${clima['cl_viento']} m/s', WeatherIcons.windy),
-          _buildWeatherItem('${clima['cl_temp']} °C', WeatherIcons.thermometer),
-          _buildWeatherItem('${clima['cl_hume']}%', WeatherIcons.humidity),
-          _buildWeatherItem('${clima['cl_lluvia']} mm', WeatherIcons.rain),
-        ],
+    return GestureDetector(
+      onTap: () => _mostrarDialogoClima(context, fechaNormalizada),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        color: const Color.fromARGB(255, 202, 221, 192),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildWeatherItem('${clima['cl_viento']} m/s', WeatherIcons.windy),
+            _buildWeatherItem('${clima['cl_temp']} °C', WeatherIcons.thermometer),
+            _buildWeatherItem('${clima['cl_hume']}%', WeatherIcons.humidity),
+            _buildWeatherItem('${clima['cl_lluvia']} mm', WeatherIcons.rain),
+          ],
+        ),
       ),
     );
   }
@@ -217,4 +218,97 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
+
+  void _mostrarDialogoClima(BuildContext context, DateTime fecha) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.cloud, color: Color(0xFF49784F)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Opciones del Clima',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  '¿Qué deseas hacer con los datos climáticos de este día?',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: const Text('Editar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  minimumSize: const Size(double.infinity, 45),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  final clima = Provider.of<CalendarProvider>(context, listen: false).weather[fecha];
+
+                  if (clima != null) {
+                    Navigator.of(context).pop(); // Cierra el diálogo
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EditWeatherScreen(weather: clima),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se encontró información del clima para esta fecha.')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.delete, color: Colors.white),
+                label: const Text('Eliminar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  minimumSize: const Size(double.infinity, 45),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  final provider = Provider.of<WeatherProvider>(context, listen: false);
+                  final clima = Provider.of<CalendarProvider>(context, listen: false).weather[fecha];
+                  final eliminado = clima != null ? await provider.deleteWeather(clima['cl_id']) : false;
+                  Navigator.of(context).pop();
+                  if (eliminado) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Datos del clima eliminados')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Error al eliminar clima')),
+                    );
+                  }
+                  _fetchData();
+                },
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+    
 }
