@@ -164,6 +164,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       title: const Text("SCDAA"),
+      automaticallyImplyLeading: false,
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       actions: [
         IconButton(

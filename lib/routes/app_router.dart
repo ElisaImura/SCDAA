@@ -12,6 +12,7 @@ import 'package:mspaa/screens/views/ciclos_view.dart';
 import 'package:mspaa/screens/views/cultivos_view.dart';
 import 'package:mspaa/screens/views/insumos_view.dart';
 import 'package:mspaa/screens/views/lotes_view.dart';
+import 'package:mspaa/screens/views/permisos_view.dart';
 import 'package:mspaa/screens/views/users_view.dart';
 import 'package:mspaa/screens/welcome_screen.dart';
 import 'package:mspaa/widgets/main_layout.dart';
@@ -95,6 +96,10 @@ class AppRouter {
         GoRoute(
           path: '/cultivos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: CultivosView())),
+        ),
+        GoRoute(
+          path: '/permisos',
+          pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: PermisosView())),
         ),
       ],
     );

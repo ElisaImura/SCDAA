@@ -1136,4 +1136,71 @@ class ApiService {
       throw Exception("Error al obtener variedades por cultivo");
     }
   }
+
+  // Obtener todos los permisos
+  Future<List<Map<String, dynamic>>> fetchPermisos() async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/permisos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception('Error al obtener los permisos');
+    }
+  }
+
+  // Asignar permisos a un usuario
+  Future<bool> asignarPermisosAUsuario(int usuarioId, List<int> permisos) async {
+    final String? token = await _getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/usuarios/$usuarioId/permisos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        "permisos": permisos,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      if (kDebugMode) {
+        print("Error al asignar permisos: ${response.body}");
+      }
+      return false;
+    }
+  }
+
+  // Eliminar permisos de un usuario
+  Future<bool> eliminarPermisosDeUsuario(int usuarioId, List<int> permisos) async {
+    final String? token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/usuarios/$usuarioId/permisos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        "permisos": permisos,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      if (kDebugMode) {
+        print("Error al eliminar permisos: ${response.body}");
+      }
+      return false;
+    }
+  }
 }

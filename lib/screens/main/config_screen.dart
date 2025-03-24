@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mspaa/providers/users_provider.dart';
 
 class ConfigScreen extends StatelessWidget {
@@ -28,8 +29,8 @@ class ConfigScreen extends StatelessWidget {
 
           if (userRoleId == 1) ...[
             _buildSectionTitle('Seguridad y Auditoría'),
-            _buildListTile(Icons.history, 'Reportes de Auditoría', () {}),
-            _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {}),
+            _buildListTile(Icons.history, 'Reportes de Auditoría', () {}, isDisabled: true),
+            _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {context.push('/permisos');}),
           ],
         ],
       ),
@@ -49,12 +50,15 @@ class ConfigScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListTile(IconData icon, String title, VoidCallback onTap) {
+  Widget _buildListTile(IconData icon, String title, VoidCallback onTap, {bool isDisabled = false}) {
     return ListTile(
-      leading: Icon(icon, color: Colors.green),
-      title: Text(title),
+      leading: Icon(icon, color: isDisabled ? Colors.grey : Colors.green),
+      title: Text(
+        title,
+        style: TextStyle(color: isDisabled ? Colors.grey : Colors.black),
+      ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
     );
   }
 }

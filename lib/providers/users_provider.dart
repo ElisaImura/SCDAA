@@ -6,7 +6,8 @@ import 'package:mspaa/services/api_service.dart';
 class UsersProvider with ChangeNotifier {
   Map<String, dynamic> _userData = {};
   List<Map<String, dynamic>>? _users;
-  List<Map<String, dynamic>> _roles = []; // Inicializa con una lista vacía
+  List<Map<String, dynamic>> _roles = [];
+  List<Map<String, dynamic>> allPermisos = [];
 
   Map<String, dynamic>? get userData => _userData;
   List<Map<String, dynamic>>? get users => _users;
@@ -146,6 +147,64 @@ class UsersProvider with ChangeNotifier {
     final userPermIds = userPerms.map<int>((perm) => perm["perm_id"] as int).toSet();
 
     return requiredIds.every(userPermIds.contains);
+  }
+
+
+
+  // Permisos
+
+  // Función para obtener todos los permisos disponibles
+  Future<void> fetchAllPermisos() async {
+    try {
+      final ApiService apiService = ApiService();
+      final permisos = await apiService.fetchPermisos();
+      allPermisos = permisos;
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error al obtener los permisos: $e");
+      }
+      allPermisos = [];
+      notifyListeners();
+    }
+  }
+
+  // Función para asignar permisos a un usuario
+  Future<bool> asignarPermisos(int usuarioId, List<int> permisos) async {
+    try {
+      final apiService = ApiService();
+      final resultado = await apiService.asignarPermisosAUsuario(usuarioId, permisos);
+
+      if (resultado) {
+        await fetchUsers(); // Opcional: actualizar la lista de usuarios con sus nuevos permisos
+      }
+
+      return resultado;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error en provider al asignar permisos: $e");
+      }
+      return false;
+    }
+  }
+
+  // Función para quitar permisos a un usuario
+  Future<bool> quitarPermisos(int usuarioId, List<int> permisos) async {
+    try {
+      final apiService = ApiService();
+      final resultado = await apiService.eliminarPermisosDeUsuario(usuarioId, permisos);
+
+      if (resultado) {
+        await fetchUsers(); // Opcional: actualizar la lista de usuarios con sus nuevos permisos
+      }
+
+      return resultado;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error en provider al quitar permisos: $e");
+      }
+      return false;
+    }
   }
 
 }
