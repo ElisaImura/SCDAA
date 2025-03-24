@@ -2,6 +2,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:mspaa/screens/forms/add_cycle_screen.dart';
@@ -70,6 +71,10 @@ class _CiclosViewState extends State<CiclosView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+    final isAdmin = userProvider.userData?["rol"]?["rol_id"] == 1;
+    final tienePermisoCiclos = userProvider.hasPermissions([1, 2, 3]);
+
     return Scaffold(
       body: Consumer<CycleProvider>(builder: (context, cycleProvider, child) {
         final ciclosActivos = cycleProvider.ciclosActivos;
@@ -93,37 +98,38 @@ class _CiclosViewState extends State<CiclosView> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final result = await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AddCycleScreen(),
-                        ),
-                      );
+              if (isAdmin || tienePermisoCiclos)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const AddCycleScreen(),
+                          ),
+                        );
 
-                      if (result == true) {
-                        await Provider.of<CycleProvider>(context, listen: false).fetchCiclosActivos();
-                        await Provider.of<CycleProvider>(context, listen: false).fetchCiclosInactivos();
-                      }
-                    },
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text("Agregar Ciclo"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        if (result == true) {
+                          await Provider.of<CycleProvider>(context, listen: false).fetchCiclosActivos();
+                          await Provider.of<CycleProvider>(context, listen: false).fetchCiclosInactivos();
+                        }
+                      },
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text("Agregar Ciclo"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-              ),
 
               Expanded(
                 child: SingleChildScrollView(
@@ -144,7 +150,7 @@ class _CiclosViewState extends State<CiclosView> {
                               : (ciclosActivos.length > 3 ? 3 : ciclosActivos.length),
                           itemBuilder: (context, index) {
                             final ciclo = ciclosActivos[index];
-                            return _buildCicloCard(context, ciclo);
+                            return _buildCicloCard(context, ciclo, isAdmin, tienePermisoCiclos);
                           },
                         ),
                       
@@ -176,7 +182,7 @@ class _CiclosViewState extends State<CiclosView> {
                               : (ciclosInactivos.length > 3 ? 3 : ciclosInactivos.length),
                           itemBuilder: (context, index) {
                             final ciclo = ciclosInactivos[index];
-                            return _buildCicloCard(context, ciclo);
+                            return _buildCicloCard(context, ciclo, isAdmin, tienePermisoCiclos);
                           },
                         ),
 
@@ -229,7 +235,7 @@ class _CiclosViewState extends State<CiclosView> {
     );
   }
 
-  Widget _buildCicloCard(BuildContext context, Map<String, dynamic> ciclo) {
+  Widget _buildCicloCard(BuildContext context, Map<String, dynamic> ciclo, bool isAdmin, bool tienePermisoCiclos) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -248,32 +254,34 @@ class _CiclosViewState extends State<CiclosView> {
             style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ),
-        trailing: Wrap(
-          spacing: 8,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              tooltip: 'Editar',
-              onPressed: () async {
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => EditCycleScreen(ciclo: ciclo)),
-                );
-                if (result == true) {
-                  await Provider.of<CycleProvider>(context, listen: false).fetchCiclosActivos();
-                  await Provider.of<CycleProvider>(context, listen: false).fetchCiclosInactivos();
-                  setState(() {});
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              tooltip: 'Eliminar',
-              onPressed: () {
-                _showDeleteConfirmationDialog(context, ciclo['ci_id']);
-              },
-            ),
-          ],
-        ),
+        trailing: (isAdmin || tienePermisoCiclos)
+          ? Wrap(
+              spacing: 8,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  tooltip: 'Editar',
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => EditCycleScreen(ciclo: ciclo)),
+                    );
+                    if (result == true) {
+                      await Provider.of<CycleProvider>(context, listen: false).fetchCiclosActivos();
+                      await Provider.of<CycleProvider>(context, listen: false).fetchCiclosInactivos();
+                      setState(() {});
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Eliminar',
+                  onPressed: () {
+                    _showDeleteConfirmationDialog(context, ciclo['ci_id']);
+                  },
+                ),
+              ],
+            )
+          : null,
       ),
     );
   }

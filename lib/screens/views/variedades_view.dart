@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, avoid_print, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/cultivos_variedades_provider.dart';
 import 'package:mspaa/screens/forms/add_variedad_screen.dart';
@@ -75,6 +76,7 @@ class _VariedadesViewState extends State<VariedadesView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
     final nombreCultivo = widget.cultivo['tpCul_nombre'] ?? 'Cultivo';
 
     return Scaffold(
@@ -97,35 +99,36 @@ class _VariedadesViewState extends State<VariedadesView> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final result = await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => AddVariedadScreen(cultivoId: widget.cultivo['tpCul_id']),
+                if (userProvider.hasPermissions([10, 11, 12]))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AddVariedadScreen(cultivoId: widget.cultivo['tpCul_id']),
+                            ),
+                          );
+                          if (result == true) {
+                            await _loadVariedades();
+                          }
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text("Agregar Variedad"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        );
-                        if (result == true) {
-                          await _loadVariedades();
-                        }
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text("Agregar Variedad"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: variedades.isEmpty
                       ? const Center(child: Text('No hay variedades disponibles.'))
@@ -156,32 +159,33 @@ class _VariedadesViewState extends State<VariedadesView> {
                                   nombre,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
-                                trailing: Wrap(
-                                  spacing: 12,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, color: Colors.blue),
-                                      tooltip: 'Editar',
-                                      onPressed: () async {
-                                        final result = await Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => EditVariedadScreen(variedad: variedad),
-                                          ),
-                                        );
-                                        if (result == true) {
-                                          await _loadVariedades();
-                                        }
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      tooltip: 'Eliminar',
-                                      onPressed: () {
-                                        _confirmarEliminacion(context, variedad['tpVar_id']);
-                                      },
-                                    ),
-                                  ],
-                                ),
+                                trailing: (userProvider.hasPermissions([10, 11, 12])) ?
+                                  Wrap(
+                                    spacing: 12,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, color: Colors.blue),
+                                        tooltip: 'Editar',
+                                        onPressed: () async {
+                                          final result = await Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => EditVariedadScreen(variedad: variedad),
+                                            ),
+                                          );
+                                          if (result == true) {
+                                            await _loadVariedades();
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        tooltip: 'Eliminar',
+                                        onPressed: () {
+                                          _confirmarEliminacion(context, variedad['tpVar_id']);
+                                        },
+                                      ),
+                                    ],
+                                  ):null,
                               ),
                             );
                           },

@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/screens/forms/add_cultivo_screen.dart';
 import 'package:mspaa/screens/forms/edit_cultivo_screen.dart';
 import 'package:provider/provider.dart';
@@ -56,6 +57,9 @@ class _CultivosViewState extends State<CultivosView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+    final isAdmin = userProvider.userData?["rol"]?["rol_id"] == 1;
+
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,32 +79,33 @@ class _CultivosViewState extends State<CultivosView> {
           ),
 
           // Botón para agregar nuevo tipo de cultivo
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const AddCultivoScreen()),
-                  );
-                  if (result == true) {
-                    await Provider.of<CultivosVariedadesProvider>(context, listen: false).fetchCultivos();
-                    setState(() {});
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text("Agregar Tipo de Cultivo"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          if (userProvider.hasPermissions([7, 8, 9]) || isAdmin)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const AddCultivoScreen()),
+                    );
+                    if (result == true) {
+                      await Provider.of<CultivosVariedadesProvider>(context, listen: false).fetchCultivos();
+                      setState(() {});
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text("Agregar Tipo de Cultivo"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Lista de cultivos desde el Provider
           Expanded(
@@ -126,7 +131,7 @@ class _CultivosViewState extends State<CultivosView> {
                       ),
                       elevation: 5,
                       shadowColor: Colors.black.withOpacity(0.1),
-                      child: ExpansionTile(
+                      child: (userProvider.hasPermissions([7, 8, 9]) || isAdmin) ? ExpansionTile(
                         tilePadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         title: Text(
                           nombre,
@@ -198,7 +203,30 @@ class _CultivosViewState extends State<CultivosView> {
                             ),
                           ),
                         ],
-                      ),
+                      ): ListTile(
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: Text(
+                            nombre,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: const Color.fromARGB(255, 0, 111, 32),
+                            child: Text(
+                              nombre.isNotEmpty ? nombre[0].toUpperCase() : 'C',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VariedadesView(cultivo: cultivo),
+                              ),
+                            );
+                          },
+                        )
                     );
                   },
                 );

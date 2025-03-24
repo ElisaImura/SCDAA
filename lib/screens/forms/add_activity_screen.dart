@@ -1,11 +1,11 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, avoid_print
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mspaa/providers/cycle_provider.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
@@ -98,6 +98,18 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     final weatherProvider = Provider.of<WeatherProvider>(context);
     final activityProvider = Provider.of<ActivityProvider>(context);
     final cycleProvider = Provider.of<CycleProvider>(context);
+    final userInfo = context.watch<UsersProvider>().userData;
+    final userId = userInfo?["uss_id"];
+    final isAdmin = userInfo?["rol"]?["rol_id"] == 1;
+
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+
+    bool tienePermisoCiclos = userProvider.hasPermissions([1, 2, 3]);
+    bool tienePermisoInsumos = userProvider.hasPermissions([4, 5, 6]);
+
+    if (!isAdmin && _ussId == null) {
+      _ussId = userId;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -155,18 +167,20 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   children: [
                     _buildDatePicker(),
                     const SizedBox(height: 20),
-                    _buildCicloDropdown(activityProvider, cycleProvider),
+                    _buildCicloDropdown(activityProvider, cycleProvider, isAdmin, tienePermisoCiclos),
                     const SizedBox(height: 20),
                     _buildTipoActividadDropdown(activityProvider),
                     const SizedBox(height: 20),
-                    _buildResponsableDropdown(activityProvider),
-                    const SizedBox(height: 20),
+                    if (isAdmin) ...[
+                      _buildResponsableDropdown(activityProvider),
+                      const SizedBox(height: 20),
+                    ],
                     // Solo mostramos la sección de densidad si el tipo de actividad es "Siembra"
                     if (_selectedTipoActividad == "3") _buildDensidadField(),
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
                     if (_selectedTipoActividad == "4")_buildConCantField(),
                     if (_selectedTipoActividad == "4")_buildConVigorField(),
-                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(),
+                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(isAdmin, tienePermisoInsumos),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
                     // Mostrar el boton de agregar clima solo si no hay clima cargado anteriormente para la fecha
@@ -181,7 +195,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
  
-  Widget _buildCicloDropdown(ActivityProvider activityProvider, CycleProvider cycleProvider) {
+  Widget _buildCicloDropdown(ActivityProvider activityProvider, CycleProvider cycleProvider, bool isAdmin, bool tienePermisoCiclos,) {
     return DropdownButtonFormField<String>(
       value: _selectedCiclo,
       decoration: const InputDecoration(labelText: "Ciclo", border: OutlineInputBorder()),
@@ -197,7 +211,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             child: Text("${ciclo['ci_nombre']} ($loteName)"),
           );
         }),
-        const DropdownMenuItem(value: "nuevo", child: Text("➕ Crear nuevo ciclo")),
+        if (isAdmin || tienePermisoCiclos)
+          const DropdownMenuItem(value: "nuevo", child: Text("➕ Crear nuevo ciclo")),
       ],
       onChanged: (value) async {
         if (value == "nuevo") {
@@ -212,8 +227,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             final cicloSeleccionado = _selectedCiclo;
             if (cicloSeleccionado != null) {
               // Espera a que las actividades se carguen
-              await activityProvider.fetchAllActividades();  // Espera a que se carguen las actividades
-              print("Actividades cargadas: ${activityProvider.actividades}");
+              await activityProvider.fetchAllActividades();
 
               // Verificar si ya existe una actividad de Siembra para el ciclo seleccionado
               final actividadExistente = activityProvider.actividades.firstWhere(
@@ -222,8 +236,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     actividad['ciclo']['ci_id'] == int.parse(cicloSeleccionado), // Si el ciclo coincide
                 orElse: () => {}, // Retorna un mapa vacío si no hay coincidencia
               );
-
-              print('En ciclo: $actividadExistente');
 
               if (actividadExistente.isNotEmpty) {
                 // Si ya existe una actividad de "Siembra" para este ciclo
@@ -262,8 +274,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           final cicloSeleccionado = _selectedCiclo;
           if (cicloSeleccionado != null) {
             // Espera a que las actividades se carguen
-            await activityProvider.fetchAllActividades();  // Espera a que se carguen las actividades
-            print("Actividades cargadas: ${activityProvider.actividades}");
+            await activityProvider.fetchAllActividades();
 
             // Verificar si ya existe una actividad de Siembra para el ciclo seleccionado
             final actividadExistente = activityProvider.actividades.firstWhere(
@@ -272,8 +283,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   actividad['ciclo']['ci_id'] == int.parse(cicloSeleccionado), // Si el ciclo coincide
               orElse: () => {}, // Retorna un mapa vacío si no hay coincidencia
             );
-
-            print('En tipo actividad: $actividadExistente');
 
             if (actividadExistente.isNotEmpty) {
               // Si ya existe una actividad de "Siembra" para este ciclo
@@ -291,7 +300,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
-  Widget _buildInsumosSection() {
+  Widget _buildInsumosSection(bool isAdmin, bool tienePermisoInsumos,) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(
@@ -374,7 +383,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           const SizedBox(height: 10),
 
           // Sección para agregar un nuevo insumo
-          if (_activityState != 'Pendiente') 
+          if (_activityState != 'Pendiente' && (isAdmin || tienePermisoInsumos)) 
             Row(
               children: [
                 // Descripción del nuevo insumo
@@ -402,10 +411,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 ),
               ],
             ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
           // Botón para agregar insumo nuevo
-          if (_activityState != 'Pendiente')
+          if (_activityState != 'Pendiente' && (isAdmin || tienePermisoInsumos))
             ElevatedButton.icon(
               onPressed: () {
                 if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
@@ -444,12 +453,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               ),
             ),
 
-          const SizedBox(height: 15),
-
           // Mostrar la lista de insumos agregados
           if (_selectedInsumos.isNotEmpty)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.only(top: 15),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
@@ -722,10 +729,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             // Agregar los insumos a la actividad
             if (insumosData.isNotEmpty) {
               activityData['insumos'] = insumosData;
-            }
-
-            if (kDebugMode) {
-              print("Datos que se enviarán a la API: $activityData");
             }
 
             // 3. Guardar la actividad

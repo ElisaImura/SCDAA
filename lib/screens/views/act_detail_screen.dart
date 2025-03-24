@@ -28,19 +28,21 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     actividadActual = widget.actividad;
   
     if (actividadActual['ciclo'] != null && actividadActual['ciclo']['uss_id'] != null) {
-      final ussId = actividadActual['ciclo']['uss_id'];
-      Future.delayed(Duration.zero, () => _fetchResponsable(ussId));
+      Future.delayed(Duration.zero, _setResponsableNombre);
     }
   }
 
-  void _fetchResponsable(int ussId) async {
-    final usersProvider = Provider.of<UsersProvider>(context, listen: false);
-    await usersProvider.fetchUserByID(ussId);
+  void _setResponsableNombre() async {
+    final ussId = actividadActual['ciclo']?['uss_id'];
+    if (ussId != null) {
+      final usersProvider = Provider.of<UsersProvider>(context, listen: false);
+      final user = await usersProvider.getUserById(ussId); // Usa el nuevo método
 
-    if (mounted) {
-      setState(() {
-        responsable = usersProvider.userData?['uss_nombre'] ?? "Responsable no asignado";
-      });
+      if (mounted) {
+        setState(() {
+          responsable = user?['uss_nombre'] ?? "Responsable no asignado";
+        });
+      }
     }
   }
 
@@ -63,6 +65,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final userInfo = context.watch<UsersProvider>().userData;
+    final userId = userInfo?["uss_id"];
+    final isAdmin = userInfo?["rol"]?["rol_id"] == 1;
+    final responsableId = actividadActual['ciclo']?['uss_id'];
+    final puedeEditarEliminar = isAdmin || userId == responsableId;
+
     String titulo = actividadActual['tipo_actividad']?['tpAct_nombre'] ?? "Sin título";
     String fecha = actividadActual['act_fecha'] ?? "Fecha desconocida";
     String estado = (actividadActual['act_estado'] == 1)
@@ -221,23 +229,24 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               Text("Humedad: ${humedad ?? 'No disponible'}%"),
               const SizedBox(height: 20),
             ],
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _navigateToEditActivity,
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Editar"),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _showDeleteConfirmationDialog,
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Eliminar"),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                ),
-              ],
-            ),
+            if (puedeEditarEliminar)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _navigateToEditActivity,
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Editar"),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _showDeleteConfirmationDialog,
+                    icon: const Icon(Icons.delete),
+                    label: const Text("Eliminar"),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

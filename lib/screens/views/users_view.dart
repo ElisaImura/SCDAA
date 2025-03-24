@@ -27,6 +27,9 @@ class _UsersViewState extends State<UsersView> {
 
   @override
   Widget build(BuildContext context) {
+    final userInfo = context.watch<UsersProvider>().userData;
+    final isAdmin = userInfo?["rol"]?["rol_id"] == 1; 
+    
     return Scaffold(
       appBar: const Header(),
       body: Stack(
@@ -56,37 +59,38 @@ class _UsersViewState extends State<UsersView> {
                           ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final result = await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const AddUserView(),
-                            ),
-                          );
+                  if (isAdmin)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const AddUserView(),
+                              ),
+                            );
 
-                          if (result == true) {
-                            await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
-                            setState(() {});
-                          }
-                        },
-                        icon: const Icon(Icons.person_add),
-                        label: const Text("Agregar Usuario"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            if (result == true) {
+                              await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
+                              setState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.person_add),
+                          label: const Text("Agregar Usuario"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                  ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: users.length,
@@ -94,7 +98,7 @@ class _UsersViewState extends State<UsersView> {
                         final user = users[index];
 
                         // Comprobamos si el usuario es el administrador (id == 1)
-                        bool isAdmin = user['uss_id'] == 1;
+                        bool isSupperAdmin = user['uss_id'] == 1;
 
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -124,52 +128,53 @@ class _UsersViewState extends State<UsersView> {
                               user['uss_email'] ?? 'Email no disponible',
                               style: const TextStyle(fontSize: 14, color: Colors.grey),
                             ),
-                            trailing: Wrap(
-                              spacing: 12,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () async {
-                                    final result = await Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => EditUserView(user: user),
-                                      ),
-                                    );
+                            trailing: (isAdmin)
+                              ? Wrap(
+                                  spacing: 12,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                      onPressed: () async {
+                                        final result = await Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => EditUserView(user: user),
+                                          ),
+                                        );
 
-                                    // Si se ha editado el usuario, recargar la lista
-                                    if (result == true) {
-                                      await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
-                                      setState(() {}); // Forzar la actualización de la interfaz de usuario
-                                    }
-                                  },
-                                ),
-                                // Botón de eliminación, deshabilitado si es el administrador
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.delete,
-                                    color: isAdmin ? Colors.grey : Colors.red, // Si es admin, gris
-                                  ),
-                                  onPressed: isAdmin
-                                      ? null // Si es el administrador, no hacer nada al presionar
-                                      : () async {
-                                          // Lógica para eliminar el usuario
-                                          final isDeleted = await Provider.of<UsersProvider>(context, listen: false).deleteUser(user['uss_id']);
-                                          if (isDeleted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Usuario eliminado con éxito')),
-                                            );
-                                            // Recargar la lista de usuarios después de eliminar
-                                            await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
-                                            setState(() {});
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Error al eliminar el usuario')),
-                                            );
-                                          }
-                                        },
-                                ),
-                              ],
-                            ),
+                                        // Si se ha editado el usuario, recargar la lista
+                                        if (result == true) {
+                                          await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
+                                          setState(() {}); // Forzar la actualización de la interfaz de usuario
+                                        }
+                                      },
+                                    ),
+                                    // Botón de eliminación, deshabilitado si es el administrador
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.delete,
+                                        color: isSupperAdmin ? Colors.grey : Colors.red, // Si es admin, gris
+                                      ),
+                                      onPressed: isSupperAdmin
+                                          ? null // Si es el administrador, no hacer nada al presionar
+                                          : () async {
+                                              // Lógica para eliminar el usuario
+                                              final isDeleted = await Provider.of<UsersProvider>(context, listen: false).deleteUser(user['uss_id']);
+                                              if (isDeleted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Usuario eliminado con éxito')),
+                                                );
+                                                // Recargar la lista de usuarios después de eliminar
+                                                await Provider.of<UsersProvider>(context, listen: false).fetchUsers();
+                                                setState(() {});
+                                              } else {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Error al eliminar el usuario')),
+                                                );
+                                              }
+                                            },
+                                    ),
+                                  ],
+                                ): null,
                           ),
                         );
                       },

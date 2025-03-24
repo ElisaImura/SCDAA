@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/insumos_provider.dart';
 import 'package:mspaa/screens/forms/add_insumo_screen.dart';
@@ -28,6 +29,10 @@ class _InsumosViewState extends State<InsumosView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+    final isAdmin = userProvider.userData?["rol"]?["rol_id"] == 1;
+    final tienePermisoInsumos = userProvider.hasPermissions([4, 5, 6]);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -50,37 +55,38 @@ class _InsumosViewState extends State<InsumosView> {
                         ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final result = await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const AddInsumoScreen(),
-                          ),
-                        );
+                if (isAdmin || tienePermisoInsumos)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const AddInsumoScreen(),
+                            ),
+                          );
 
-                        if (result == true) {
-                          await Provider.of<InsumosProvider>(context, listen: false).fetchInsumos();
-                          setState(() {});
-                        }
-                      },
-                      icon: const Icon(Icons.add_box),
-                      label: const Text("Agregar Insumo"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          if (result == true) {
+                            await Provider.of<InsumosProvider>(context, listen: false).fetchInsumos();
+                            setState(() {});
+                          }
+                        },
+                        icon: const Icon(Icons.add_box),
+                        label: const Text("Agregar Insumo"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: insumos.length,
@@ -114,32 +120,33 @@ class _InsumosViewState extends State<InsumosView> {
                             insumo['ins_unidad_medida'] != null ? 'Unidad: ${insumo['ins_unidad_medida']}' : 'Unidad de Medida no disponible',
                             style: const TextStyle(fontSize: 14, color: Colors.grey),
                           ),
-                          trailing: Wrap(
-                            spacing: 12,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () async {
-                                  final result = await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => EditInsumoScreen(insumo: insumo),
-                                    ),
-                                  );
+                          trailing: (isAdmin || tienePermisoInsumos)
+                            ? Wrap(
+                                spacing: 12,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () async {
+                                      final result = await Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => EditInsumoScreen(insumo: insumo),
+                                        ),
+                                      );
 
-                                  if (result == true) {
-                                    await Provider.of<InsumosProvider>(context, listen: false).fetchInsumos();
-                                    setState(() {});
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  _showDeleteConfirmationDialog(insumo['ins_id']);
-                                },
-                              ),
-                            ],
-                          ),
+                                      if (result == true) {
+                                        await Provider.of<InsumosProvider>(context, listen: false).fetchInsumos();
+                                        setState(() {});
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () {
+                                      _showDeleteConfirmationDialog(insumo['ins_id']);
+                                    },
+                                  ),
+                                ],
+                              ) : null,
                         ),
                       );
                     },

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, library_private_types_in_public_api, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/screens/forms/edit_lote_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/lotes_provider.dart';
@@ -64,6 +65,9 @@ class _LotesViewState extends State<LotesView> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+    final isAdmin = userProvider.userData?["rol"]?["rol_id"] == 1;
+    
     return Scaffold(
       body: Stack(
         children: [
@@ -87,37 +91,38 @@ class _LotesViewState extends State<LotesView> {
                           ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final result = await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const AddLoteScreen(),
-                            ),
-                          );
+                  if (isAdmin)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const AddLoteScreen(),
+                              ),
+                            );
 
-                          if (result == true) {
-                            await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
-                            setState(() {});
-                          }
-                        },
-                        icon: const Icon(Icons.add_location_alt),
-                        label: const Text("Agregar Lote"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            if (result == true) {
+                              await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+                              setState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.add_location_alt),
+                          label: const Text("Agregar Lote"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                  ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: lotes.length,
@@ -151,33 +156,34 @@ class _LotesViewState extends State<LotesView> {
                               lot['lot_area'] != null ? 'Área: ${lot['lot_area']} ha' : 'Área no disponible',
                               style: const TextStyle(fontSize: 14, color: Colors.grey),
                             ),
-                            trailing: Wrap(
-                              spacing: 12,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () async {
-                                    final result = await Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => EditLoteScreen(lote: lot),
-                                      ),
-                                    );
+                            trailing: (isAdmin)
+                              ?  Wrap(
+                                  spacing: 12,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                      onPressed: () async {
+                                        final result = await Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => EditLoteScreen(lote: lot),
+                                          ),
+                                        );
 
-                                    // Si se ha editado el lote, recargar la lista
-                                    if (result == true) {
-                                      await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
-                                      setState(() {}); // Forzar la actualización de la interfaz de usuario
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    _showDeleteConfirmationDialog(context, lot['lot_id']);
-                                  },
-                                ),
-                              ],
-                            ),
+                                        // Si se ha editado el lote, recargar la lista
+                                        if (result == true) {
+                                          await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+                                          setState(() {}); // Forzar la actualización de la interfaz de usuario
+                                        }
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () {
+                                        _showDeleteConfirmationDialog(context, lot['lot_id']);
+                                      },
+                                    ),
+                                  ],
+                                ):null,
                           ),
                         );
                       },

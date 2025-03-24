@@ -42,6 +42,20 @@ class UsersProvider with ChangeNotifier {
     }
   }
 
+  // Método para obtener los datos de un usuario por su ID pero sin tocar _userData
+  Future<Map<String, dynamic>?> getUserById(int id) async {
+    try {
+      final ApiService apiService = ApiService();
+      final user = await apiService.getUserByID(id);
+      return user;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error al obtener datos del usuario por ID: $e");
+      }
+      return null;
+    }
+  }
+
   // Método para obtener la lista de usuarios
   Future<void> fetchUsers() async {
     try {
@@ -124,6 +138,14 @@ class UsersProvider with ChangeNotifier {
       print("Error al eliminar el usuario: $e");
       return false;
     }
+  }
+
+  // Función para verificar si el usuario tiene los permisos requeridos
+  bool hasPermissions(List<int> requiredIds) {
+    final userPerms = userData?["permisos"] ?? [];
+    final userPermIds = userPerms.map<int>((perm) => perm["perm_id"] as int).toSet();
+
+    return requiredIds.every(userPermIds.contains);
   }
 
 }

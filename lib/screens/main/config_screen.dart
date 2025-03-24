@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mspaa/providers/users_provider.dart';
 
 class ConfigScreen extends StatelessWidget {
   const ConfigScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final userInfo = context.watch<UsersProvider>().userData;
+
+    final userRoleId = userInfo?["rol"]?["rol_id"];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configuración'),
@@ -20,9 +26,11 @@ class ConfigScreen extends StatelessWidget {
           _buildSectionTitle('Sistema'),
           _buildListTile(Icons.notifications, 'Notificaciones', () {}),
 
-          _buildSectionTitle('Seguridad y Auditoría'),
-          _buildListTile(Icons.history, 'Reportes de Auditoría', () {}),
-          _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {}),
+          if (userRoleId == 1) ...[
+            _buildSectionTitle('Seguridad y Auditoría'),
+            _buildListTile(Icons.history, 'Reportes de Auditoría', () {}),
+            _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {}),
+          ],
         ],
       ),
     );
@@ -34,7 +42,7 @@ class ConfigScreen extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 18, 
+          fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
       ),
