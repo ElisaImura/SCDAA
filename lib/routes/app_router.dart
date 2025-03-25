@@ -35,26 +35,32 @@ class AppRouter {
         GoRoute(
           path: '/home',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const HomeScreen())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/calendar',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const CalendarScreen())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/reports',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const ReportsScreen())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/config',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: const ConfigScreen())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/add-activity',
           pageBuilder: (context, state) => NoTransitionPage(child: const AddActivityScreen()),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/add-cycle',
           pageBuilder: (context, state) => NoTransitionPage(child: const AddCycleScreen()),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/add-weather',
@@ -65,10 +71,12 @@ class AppRouter {
 
             return AddWeatherScreen(isFromFooter: isFromFooter); // Pass the flag to the screen
           },
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/usuarios',
           pageBuilder: (context, state) => NoTransitionPage(child: const UsersView()),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/usuarios/edit',
@@ -76,30 +84,37 @@ class AppRouter {
             final user = state.extra as Map<String, dynamic>;
             return NoTransitionPage(child: EditUserView(user: user));
           },
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/actividades',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: ActivitiesView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/lotes',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: LotesView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/insumos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: InsumosView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/ciclos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: CiclosView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/cultivos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: CultivosView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
         GoRoute(
           path: '/permisos',
           pageBuilder: (context, state) => NoTransitionPage(child: MainLayout(child: PermisosView())),
+          redirect: (context, state) => isLoggedIn ? null : '/login',
         ),
       ],
     );
