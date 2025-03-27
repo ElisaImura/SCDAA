@@ -99,12 +99,6 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         border: OutlineInputBorder(),
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: true),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor, ingresa la velocidad del viento.';
-        }
-        return null;
-      },
     );
   }
 
@@ -116,12 +110,6 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         border: OutlineInputBorder(),
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: true),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor, ingresa la temperatura.';
-        }
-        return null;
-      },
     );
   }
 
@@ -133,12 +121,6 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         border: OutlineInputBorder(),
       ),
       keyboardType: TextInputType.number,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor, ingresa la humedad.';
-        }
-        return null;
-      },
     );
   }
 
@@ -150,13 +132,14 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         border: OutlineInputBorder(),
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: true),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor, ingresa la cantidad de lluvia.';
-        }
-        return null;
-      },
     );
+  }
+
+  bool _validateFields() {
+    return _vientoController.text.isNotEmpty ||
+        _temperaturaController.text.isNotEmpty ||
+        _humedadController.text.isNotEmpty ||
+        _lluviaController.text.isNotEmpty;
   }
 
   Widget _buildSaveButton(WeatherProvider weatherProvider) {
@@ -166,7 +149,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         onPressed: weatherProvider.isWeatherAvailable // Check if the weather is already available
             ? null  // Disable the button if the weather data already exists
             : () async {
-                if (_formKey.currentState!.validate()) {
+                if (_formKey.currentState!.validate() && _validateFields()) {
                   // Crear el objeto de datos del clima
                   Map<String, dynamic> weatherData = {
                     "cl_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
@@ -190,6 +173,8 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar los datos del clima")));
                   }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, complete al menos un campo de datos del clima")));
                 }
               },
         child: weatherProvider.isWeatherAvailable  // Change button text based on weather availability
@@ -198,5 +183,4 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
       ),
     );
   }
-
 }

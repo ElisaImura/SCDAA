@@ -5,6 +5,7 @@ import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/providers/cultivos_variedades_provider.dart';
 import 'package:mspaa/providers/cycle_provider.dart';
 import 'package:mspaa/providers/insumos_provider.dart';
+import 'package:mspaa/providers/reportes_provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
 import 'package:mspaa/providers/lotes_provider.dart';
@@ -36,6 +37,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => InsumosProvider()),
         ChangeNotifierProvider(create: (_) => CycleProvider()),
         ChangeNotifierProvider(create: (_) => CultivosVariedadesProvider()),
+        ChangeNotifierProvider(create: (_) => ReportesProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn), // Usar MyApp con el isLoggedIn como parámetro
     ),

@@ -39,105 +39,106 @@ class _PermisosViewState extends State<PermisosView> {
   @override
   Widget build(BuildContext context) {
     final usersProvider = Provider.of<UsersProvider>(context);
-    final users = (usersProvider.users ?? [])
-        .where((u) => u['rol']?['rol_id'] != 1)
-        .toList();
+    final allUsers = usersProvider.users;
+    final users = (allUsers ?? []).where((u) => u['rol']?['rol_id'] != 1).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Asignar Permisos')),
-      body: users.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                final userId = user['uss_id'] as int;
+      body: allUsers == null
+          ? const Center(child: CircularProgressIndicator()) // Cargando datos
+          : users.isEmpty
+              ? const Center(child: Text('No hay usuarios disponibles para asignar permisos.'))
+              : ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    final userId = user['uss_id'] as int;
 
-                permisosPorUsuario[userId] ??= (user['permisos'] as List<dynamic>)
-                    .map((p) => p['perm_id'] as int)
-                    .toSet();
+                    permisosPorUsuario[userId] ??= (user['permisos'] as List<dynamic>)
+                        .map((p) => p['perm_id'] as int)
+                        .toSet();
 
-                final userPermisos = permisosPorUsuario[userId]!;
+                    final userPermisos = permisosPorUsuario[userId]!;
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ExpansionTile(
-                    title: Text(user['uss_nombre'] ?? 'Nombre no disponible'),
-                    subtitle: Text(user['uss_email'] ?? ''),
-                    children: [
-                      Column(
-                        children: categorias.entries.map((categoria) {
-                          final nombre = categoria.key;
-                          final permisosGrupo = categoria.value;
-                          final descripcion = descripciones[nombre] ?? '';
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: ExpansionTile(
+                        title: Text(user['uss_nombre'] ?? 'Nombre no disponible'),
+                        subtitle: Text(user['email'] ?? ''),
+                        children: [
+                          Column(
+                            children: categorias.entries.map((categoria) {
+                              final nombre = categoria.key;
+                              final permisosGrupo = categoria.value;
+                              final descripcion = descripciones[nombre] ?? '';
 
-                          final tieneTodos = permisosGrupo.every((p) => userPermisos.contains(p));
+                              final tieneTodos = permisosGrupo.every((p) => userPermisos.contains(p));
 
-                          return CheckboxListTile(
-                            title: Text(nombre),
-                            subtitle: Text(descripcion),
-                            value: tieneTodos,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                if (value == true) {
-                                  userPermisos.addAll(permisosGrupo);
-                                } else {
-                                  userPermisos.removeAll(permisosGrupo);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final permisosActuales = (user['permisos'] as List<dynamic>)
-                                .map((p) => p['perm_id'] as int)
-                                .toSet();
-                            final nuevosPermisos = permisosPorUsuario[userId]!;
-
-                            final aAgregar = nuevosPermisos.difference(permisosActuales).toList();
-                            final aQuitar = permisosActuales.difference(nuevosPermisos).toList();
-
-                            bool exitoAgregar = true;
-                            bool exitoQuitar = true;
-
-                            if (aAgregar.isNotEmpty) {
-                              exitoAgregar = await usersProvider.asignarPermisos(userId, aAgregar);
-                            }
-
-                            if (aQuitar.isNotEmpty) {
-                              exitoQuitar = await usersProvider.quitarPermisos(userId, aQuitar);
-                            }
-
-                            final snackBar = SnackBar(
-                              content: Text(
-                                (exitoAgregar && exitoQuitar)
-                                    ? 'Permisos actualizados con éxito'
-                                    : 'Hubo un error al actualizar algunos permisos',
-                              ),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-                            await usersProvider.fetchUsers();
-                            setState(() {});
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text("Guardar Cambios"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
+                              return CheckboxListTile(
+                                title: Text(nombre),
+                                subtitle: Text(descripcion),
+                                value: tieneTodos,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      userPermisos.addAll(permisosGrupo);
+                                    } else {
+                                      userPermisos.removeAll(permisosGrupo);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
                           ),
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              },
-            ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final permisosActuales = (user['permisos'] as List<dynamic>)
+                                    .map((p) => p['perm_id'] as int)
+                                    .toSet();
+                                final nuevosPermisos = permisosPorUsuario[userId]!;
+
+                                final aAgregar = nuevosPermisos.difference(permisosActuales).toList();
+                                final aQuitar = permisosActuales.difference(nuevosPermisos).toList();
+
+                                bool exitoAgregar = true;
+                                bool exitoQuitar = true;
+
+                                if (aAgregar.isNotEmpty) {
+                                  exitoAgregar = await usersProvider.asignarPermisos(userId, aAgregar);
+                                }
+
+                                if (aQuitar.isNotEmpty) {
+                                  exitoQuitar = await usersProvider.quitarPermisos(userId, aQuitar);
+                                }
+
+                                final snackBar = SnackBar(
+                                  content: Text(
+                                    (exitoAgregar && exitoQuitar)
+                                        ? 'Permisos actualizados con éxito'
+                                        : 'Hubo un error al actualizar algunos permisos',
+                                  ),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                                await usersProvider.fetchUsers();
+                                setState(() {});
+                              },
+                              icon: const Icon(Icons.save),
+                              label: const Text("Guardar Cambios"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

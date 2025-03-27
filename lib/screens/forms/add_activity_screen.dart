@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, avoid_print
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
@@ -217,6 +217,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       onChanged: (value) async {
         if (value == "nuevo") {
           context.push('/add-cycle');
+          await cycleProvider.fetchCiclosActivos();
         } else {
           setState(() {
             _selectedCiclo = value;

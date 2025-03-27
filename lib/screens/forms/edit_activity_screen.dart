@@ -55,8 +55,6 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       _ussId = null; // O asigna un valor por defecto si es necesario
     }
 
-    print('Usuario: $_ussId');
-
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
     final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
 
@@ -68,8 +66,6 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
     // Configurar estado de la actividad
     _activityState = _getActivityStateString(widget.activityData['act_estado']);
-
-    print('Sie_densidad: ${widget.activityData['ciclo']['datos_ciclo']['sie_densidad']}');
 
     if (widget.activityData['ciclo']['datos_ciclo']['sie_densidad'] != null) {
       _densidadController.text = widget.activityData['ciclo']['datos_ciclo']['sie_densidad'].toString();

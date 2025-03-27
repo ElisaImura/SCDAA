@@ -49,13 +49,10 @@ class WeatherProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
-
-    print('Clima disponible: $_isWeatherAvailable');
   }
 
   // Función para editar datos del clima
   Future<bool> editWeather(int climaId, Map<String, dynamic> weatherData) async {
-    print('Datos del clima a editar: $weatherData');
     try {
       final response = await _apiService.editWeather(climaId, weatherData);
       if (response) {

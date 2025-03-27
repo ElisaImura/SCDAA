@@ -257,8 +257,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
     final updatedActivity = await activityProvider.fetchActivityById(actividadActual['act_id']);
 
-    print("Datos actualizados recibidos: $updatedActivity");
-
     if (updatedActivity != null) {
       setState(() {
         actividadActual = updatedActivity;

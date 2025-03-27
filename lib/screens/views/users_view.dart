@@ -125,7 +125,7 @@ class _UsersViewState extends State<UsersView> {
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                             subtitle: Text(
-                              user['uss_email'] ?? 'Email no disponible',
+                              user['email'] ?? 'Email no disponible',
                               style: const TextStyle(fontSize: 14, color: Colors.grey),
                             ),
                             trailing: (isAdmin)

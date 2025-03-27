@@ -27,7 +27,7 @@ class _EditUserViewState extends State<EditUserView> {
     super.initState();
     // Inicializamos los campos con los valores actuales del usuario
     _name = widget.user['uss_nombre'] ?? '';
-    _email = widget.user['uss_email'] ?? '';
+    _email = widget.user['email'] ?? '';
     _role = widget.user['rol']['rol_id'] ?? 0;
 
     // Cargar roles desde el backend

@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ApiService {
-  // static const String baseUrl = "http://10.0.2.2:8000/api"; // Para emulador Android
-  static const String baseUrl = "http://127.0.0.1:8000/api"; // Para Web o iOS
+  static const String baseUrl = "http://10.0.2.2:8000/api"; // Para emulador Android
+  //static const String baseUrl = "http://127.0.0.1:8000/api"; // Para Web o iOS
 
   /// 🔹 Obtener el token almacenado
   Future<String?> _getToken() async {
@@ -39,8 +39,10 @@ class ApiService {
     final response = await http.post(
       Uri.parse("$baseUrl/login"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"uss_email": email, "uss_clave": password}),
+      body: jsonEncode({"email": email, "uss_clave": password}),
     );
+
+    print('${jsonEncode({"email": email, "uss_clave": password})}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -309,8 +311,8 @@ class ApiService {
     }
   }
 
-  /// 🔹 Obtener los ciclos activos (sin `ci_fechafin`)
-  Future<List<Map<String, dynamic>>> fetchCiclosActivos() async {
+  /// 🔹 Obtener todos los ciclos
+  Future<List<Map<String, dynamic>>> fetchAllCiclos() async {
     final String? token = await _getToken();
     final response = await http.get(
       Uri.parse("$baseUrl/ciclos"),
@@ -320,35 +322,19 @@ class ApiService {
       },
     );
 
-    List<dynamic> data = _handleResponse(response);
-    // Filtramos los ciclos para obtener solo aquellos que no tienen ci_fechafin
-    List<Map<String, dynamic>> ciclosActivos = data
-        .where((ciclo) => ciclo["ci_fechafin"] == null)
-        .toList()
-        .cast<Map<String, dynamic>>();
-    
-    return ciclosActivos;
+    return _handleResponse(response).cast<Map<String, dynamic>>();
+  }
+
+  /// 🔹 Obtener los ciclos activos (sin `ci_fechafin`)
+  Future<List<Map<String, dynamic>>> fetchCiclosActivos() async {
+    List<Map<String, dynamic>> allCiclos = await fetchAllCiclos();
+    return allCiclos.where((ciclo) => ciclo["ci_fechafin"] == null).toList();
   }
 
   /// 🔹 Obtener los ciclos inactivos (con `ci_fechafin`)
   Future<List<Map<String, dynamic>>> fetchCiclosInactivos() async {
-    final String? token = await _getToken();
-    final response = await http.get(
-      Uri.parse("$baseUrl/ciclos"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-    List<dynamic> data = _handleResponse(response);
-    // Filtramos los ciclos para obtener solo aquellos que tienen ci_fechafin
-    List<Map<String, dynamic>> ciclosInactivos = data
-        .where((ciclo) => ciclo["ci_fechafin"] != null)
-        .toList()
-        .cast<Map<String, dynamic>>();
-    
-    return ciclosInactivos;
+    List<Map<String, dynamic>> allCiclos = await fetchAllCiclos();
+    return allCiclos.where((ciclo) => ciclo["ci_fechafin"] != null).toList();
   }
 
   /// 🔹 Obtener las próximas tareas (actividades con fecha de inicio futura)
@@ -685,7 +671,7 @@ class ApiService {
       },
       body: jsonEncode({
         "uss_nombre": name,
-        "uss_email": email,
+        "email": email,
         "rol_id": role,
       }),
     );
@@ -750,7 +736,7 @@ class ApiService {
       },
       body: jsonEncode({
         "uss_nombre": name,
-        "uss_email": email,
+        "email": email,
         "rol_id": role,
         "uss_clave": password,
       }),
@@ -758,7 +744,7 @@ class ApiService {
 
     print(jsonEncode({
       "uss_nombre": name,
-      "uss_email": email,
+      "email": email,
       "rol_id": role,
       "uss_clave": password,
     }),);
@@ -1201,6 +1187,53 @@ class ApiService {
         print("Error al eliminar permisos: ${response.body}");
       }
       return false;
+    }
+  }
+
+  // Obtener los datos de reportes de produccion
+  Future<Map<String, dynamic>?> obtenerReporteProduccion() async {
+    try {
+      final String? token = await _getToken();
+      final response = await http.get(
+        Uri.parse("$baseUrl/reportes/produccion"),
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 401) {
+        // Token inválido → redirigir al login si estás usando navegación
+        // Navigator.pushReplacementNamed(context, '/login');
+        return null;
+      } else {
+        print("Error al obtener reporte: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("Error de red: $e");
+      return null;
+    }
+  }
+
+  // Obtener lluvias por fecha
+  Future<List<Map<String, dynamic>>> fetchLluviasPorFecha(DateTime fechaini, DateTime fechafin) async {
+    final String? token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/reportes/lluvia?inicio=${fechaini.toIso8601String()}&fin=${fechafin.toIso8601String()}"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception("Error al obtener lluvias por fecha");
     }
   }
 }

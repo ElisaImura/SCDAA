@@ -74,12 +74,12 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                           builder: (context, userProvider, child) {
                             final userInfo = userProvider.userData ?? {
                               "uss_nombre": "Cargando...",
-                              "uss_email": "Cargando...",
+                              "email": "Cargando...",
                               "rol": "Cargando..."
                             };
 
                             final userName = userInfo["uss_nombre"] ?? "Nombre no disponible";
-                            final userEmail = userInfo["uss_email"] ?? "Email no disponible";
+                            final userEmail = userInfo["email"] ?? "Email no disponible";
                             final userRole = userInfo["rol"]?["rol_desc"] ?? "Rol no disponible";
 
                             return Column(
