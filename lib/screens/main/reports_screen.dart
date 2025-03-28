@@ -53,7 +53,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         title: "Producción Agrícola",
                         initiallyExpanded: true,
                         children: [
-                          _buildSectionTitle("Rendimiento por Lote"),
+                          _buildSectionTitle("Rendimiento por Lote y Tipo de Cultivo"),
                           _buildCardList(reportes.rendimientoPorLote, (e) => ListTile(
                                 title: Text("${e['cultivo']}", style: const TextStyle(fontWeight: FontWeight.w600)),
                                 subtitle: Text("Lote: ${e['lote']}"),
@@ -63,12 +63,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           _buildCardList(reportes.promedioPorVariedad, (e) => ListTile(
                                 title: Text("${e['cultivo']} - ${e['variedad']}", style: const TextStyle(fontWeight: FontWeight.w600)),
                                 subtitle: Text("Promedio: ${e['promedio_cosecha'] ?? 'N/D'} kg"),
-                              )),
-                          _buildSectionTitle("Producción por ciclo agrícola"),
-                          _buildCardList(reportes.comparativaPorCiclo, (e) => ListTile(
-                                title: Text("Ciclo: ${e['ciclo']}", style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text("Cultivo: ${e['cultivo']}"),
-                                trailing: Text("${e['total_cosechado'] ?? 'N/D'} kg", style: const TextStyle(fontWeight: FontWeight.bold)),
                               )),
                         ],
                       ),
@@ -112,6 +106,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ExpansionTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         initiallyExpanded: initiallyExpanded,
         tilePadding: const EdgeInsets.symmetric(horizontal: 16),
         childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -211,7 +207,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Lluvia (mm) por día", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Lluvia (mm) por día", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("Días con lluvia: ${reportes.lluviasPorFecha.length}", style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: LineChart(

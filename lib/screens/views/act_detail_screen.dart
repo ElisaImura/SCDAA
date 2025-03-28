@@ -117,7 +117,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Detalles de la Actividad"),
-        backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

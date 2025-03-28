@@ -198,6 +198,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   Widget _buildCicloDropdown(ActivityProvider activityProvider, CycleProvider cycleProvider, bool isAdmin, bool tienePermisoCiclos,) {
     return DropdownButtonFormField<String>(
       value: _selectedCiclo,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Este campo es obligatorio';
+        }
+        return null;
+      },
       decoration: const InputDecoration(labelText: "Ciclo", border: OutlineInputBorder()),
       items: [
         ...cycleProvider.ciclosActivos.map((ciclo) {  // Usamos ciclosActivos en lugar de ciclos
@@ -258,6 +264,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   Widget _buildTipoActividadDropdown(ActivityProvider activityProvider) {
     return DropdownButtonFormField<String>(
       value: _selectedTipoActividad,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Este campo es obligatorio';
+        }
+        return null;
+      },
       decoration: const InputDecoration(labelText: "Tipo de Actividad", border: OutlineInputBorder()),
       items: activityProvider.tiposActividades.map((tipo) {
         return DropdownMenuItem(
@@ -752,15 +764,17 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Responsable",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
         const SizedBox(height: 4),
         activityProvider.isLoadingUsuarios
             ? const Center(child: CircularProgressIndicator())
             : DropdownButtonFormField<int>(
                 value: _ussId,  // Ahora _ussId es int o null
+                validator: (value) {
+                  if (value == null) {
+                    return 'Este campo es obligatorio';
+                  }
+                  return null;
+                },
                 decoration: const InputDecoration(
                   labelText: "Selecciona un responsable",
                   border: OutlineInputBorder(),

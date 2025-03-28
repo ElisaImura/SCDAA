@@ -27,7 +27,7 @@ class ReportesProvider with ChangeNotifier {
         rendimientoPorLote = datos['rendimiento_por_lote'] ?? [];
         promedioPorVariedad = datos['promedio_por_variedad'] ?? [];
         comparativaPorCiclo = datos['comparativa_por_ciclo'] ?? [];
-        insumosMasUtilizados = datos['insumos_mas_utilizados'] ?? [];
+        insumosMasUtilizados = (datos['insumos_mas_utilizados'] ?? []).take(3).toList();
         error = null;
       } else {
         error = "Error al obtener datos del reporte.";

@@ -62,7 +62,7 @@ class _ActivitiesViewState extends State<ActivitiesView> {
               child: ListTile(
                 contentPadding: const EdgeInsets.all(16.0),  // Add padding inside ListTile
                 title: Text(
-                  activity['act_desc'],
+                  activity['act_desc'] ?? 'Descripción no disponible',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Column(

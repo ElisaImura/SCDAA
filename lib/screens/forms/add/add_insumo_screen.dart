@@ -4,8 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/insumos_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
 
 class AddInsumoScreen extends StatefulWidget {
   const AddInsumoScreen({super.key});
@@ -58,10 +56,7 @@ class _AddInsumoScreenState extends State<AddInsumoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Nuevo Insumo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -116,7 +111,6 @@ class _AddInsumoScreenState extends State<AddInsumoScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

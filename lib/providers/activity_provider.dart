@@ -286,7 +286,6 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> fetchAllActividades() async {
     try {
       _actividades = await _apiService.fetchActividades();
-      print('Actividades en provider: $_actividades');
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print("❌ Error al obtener todas las actividades: $e");

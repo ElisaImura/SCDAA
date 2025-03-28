@@ -3,9 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/lotes_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
-
 class AddLoteScreen extends StatefulWidget {
   const AddLoteScreen({super.key});
 
@@ -52,10 +49,7 @@ class _AddLoteScreenState extends State<AddLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Altura personalizada del header
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Nuevo Lote")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -98,7 +92,6 @@ class _AddLoteScreenState extends State<AddLoteScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

@@ -2,8 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
 import 'package:mspaa/providers/cultivos_variedades_provider.dart';
 
 class AddCultivoScreen extends StatefulWidget {
@@ -47,10 +45,7 @@ class _AddCultivoScreenState extends State<AddCultivoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const PreferredSize(
-        preferredSize: Size.fromHeight(70.0),
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Nuevo Cultivo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -90,7 +85,6 @@ class _AddCultivoScreenState extends State<AddCultivoScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

@@ -79,6 +79,12 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     // Seleccionar Tipo de Cultivo
                     DropdownButtonFormField<String>(
                       value: _selectedTipoCultivo,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Este campo es obligatorio';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(
                           labelText: "Tipo de Cultivo", border: OutlineInputBorder()),
                       items: activityProvider.tiposCultivos.map((cultivo) {
@@ -105,6 +111,12 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     // Seleccionar o Agregar Variedad
                     DropdownButtonFormField<String>(
                       value: _selectedVariedad,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Este campo es obligatorio';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(
                           labelText: "Variedad", border: OutlineInputBorder()),
                       items: [
@@ -141,6 +153,12 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     // Seleccionar o Agregar Lote
                     DropdownButtonFormField<String>(
                       value: _selectedLote,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Este campo es obligatorio';
+                        }
+                        return null;
+                      },
                       decoration: const InputDecoration(labelText: "Lote", border: OutlineInputBorder()),
                       items: [
                         if (activityProvider.lotes.isNotEmpty)

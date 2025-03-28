@@ -12,7 +12,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final ApiService _apiService = ApiService();
-  final _formKey = GlobalKey<FormState>(); // ✅ Agregamos la validación del formulario
+  
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -25,7 +26,6 @@ void _login() async {
       _errorMessage = null;
     });
 
-    // ✅ Ejecutamos el login en un Future separado para evitar bloquear la UI
     Future.microtask(() async {
       bool success = await _apiService.login(
         _emailController.text.trim(),
@@ -38,7 +38,7 @@ void _login() async {
         });
 
         if (success) {
-          GoRouter.of(context).go('/home'); // ✅ Redirigir al Home después del login
+          GoRouter.of(context).go('/home');
         } else {
           setState(() {
             _errorMessage = "Credenciales incorrectas.";

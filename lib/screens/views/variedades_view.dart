@@ -78,6 +78,7 @@ class _VariedadesViewState extends State<VariedadesView> {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UsersProvider>(context, listen: false);
     final nombreCultivo = widget.cultivo['tpCul_nombre'] ?? 'Cultivo';
+    final isAdmin = userProvider.userData?["rol"]?["rol_id"] == 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -99,7 +100,7 @@ class _VariedadesViewState extends State<VariedadesView> {
                     ),
                   ),
                 ),
-                if (userProvider.hasPermissions([10, 11, 12]))
+                if (isAdmin || userProvider.hasPermissions([10, 11, 12]))
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                     child: SizedBox(

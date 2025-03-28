@@ -101,6 +101,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                TextButton(
+                  onPressed: () {
+                    GoRouter.of(context).go('/login');
+                  },
+                  child: const Text(
+                    "Volver al inicio de sesión",
+                    style: TextStyle(color: Color.fromARGB(255, 25, 116, 53)),
+                  ),
+                ),
               ],
             ),
           ),

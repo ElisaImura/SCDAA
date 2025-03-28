@@ -42,7 +42,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   void initState() {
     super.initState();
 
-    _descripcionController.text = widget.activityData['act_desc'];
+    _descripcionController.text = widget.activityData['act_desc'] ?? '';
     _selectedCiclo = widget.activityData['ciclo']['ci_id'].toString();
     _selectedTipoActividad = widget.activityData['tpAct_id'].toString();
     _selectedDate = DateTime.parse(widget.activityData['act_fecha']);
@@ -172,7 +172,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
                     if (_selectedTipoActividad == "4") _buildConCantField(),
                     if (_selectedTipoActividad == "4") _buildConVigorField(),
-                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad)) _buildInsumosSection(),
+                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
                     _buildSaveButton(),
@@ -267,13 +267,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
             //Mapeamos el estado a su valor numérico
             int activityState = _getActivityStateValue(_activityState);
 
-            // 2. Crear el objeto de actividad
+            //Crear el objeto de actividad
             Map<String, dynamic> activityData = {
               "act_id": widget.activityData["act_id"],
               "tpAct_id": int.parse(_selectedTipoActividad!),
               "ci_id": int.parse(_selectedCiclo!),
               "act_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
-              "act_desc": _descripcionController.text,
+              "act_desc": _descripcionController.text.isNotEmpty ? _descripcionController.text : '',
               "act_estado": activityState,
               "uss_id": _ussId
             };

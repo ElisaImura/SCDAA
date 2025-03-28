@@ -3,8 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
 
 class AddUserView extends StatefulWidget {
   const AddUserView({super.key});
@@ -69,10 +67,7 @@ class _AddUserViewState extends State<AddUserView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Altura personalizada del header
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Nuevo Usuario")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -168,7 +163,6 @@ class _AddUserViewState extends State<AddUserView> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }
