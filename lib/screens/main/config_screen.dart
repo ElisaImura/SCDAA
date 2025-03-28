@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mspaa/providers/users_provider.dart';
+import 'package:mspaa/screens/forms/edit/edit_username.dart';
+import 'package:mspaa/screens/forms/edit/edit_email.dart';
+import 'package:mspaa/screens/forms/edit/edit_password.dart';
 
 class ConfigScreen extends StatelessWidget {
   const ConfigScreen({super.key});
@@ -20,9 +23,30 @@ class ConfigScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildSectionTitle('Cuenta'),
-          _buildListTile(Icons.person, 'Nombre de Usuario', () {}),
-          _buildListTile(Icons.email, 'Correo Electrónico', () {}),
-          _buildListTile(Icons.lock, 'Contraseña', () {}),
+          _buildListTile(Icons.person, 'Nombre de Usuario', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditUsernameScreen(),
+              ),
+            );
+          }),
+          _buildListTile(Icons.email, 'Correo Electrónico', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditEmailScreen(),
+              ),
+            );
+          }),
+          _buildListTile(Icons.lock, 'Contraseña', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditPasswordScreen(),
+              ),
+            );
+          }),
 
           _buildSectionTitle('Sistema'),
           _buildListTile(Icons.notifications, 'Notificaciones', () {}, isDisabled: true),

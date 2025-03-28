@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/weather_provider.dart';
-import 'package:mspaa/screens/forms/edit_weather_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_weather_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/screens/views/act_detail_screen.dart';
@@ -100,7 +100,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           _selectedDay = selectedDay;
                           _focusedDay = focusedDay;
                           _mostrarTodas = false;
-                          _calendarFormat = CalendarFormat.week; // Colapsar automáticamente
                         });
                       },
                       onFormatChanged: (format) {

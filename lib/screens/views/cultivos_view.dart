@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/add_cultivo_screen.dart';
-import 'package:mspaa/screens/forms/edit_cultivo_screen.dart';
+import 'package:mspaa/screens/forms/add/add_cultivo_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_cultivo_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/cultivos_variedades_provider.dart';
 import 'package:mspaa/screens/views/variedades_view.dart';

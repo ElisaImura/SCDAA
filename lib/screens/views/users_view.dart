@@ -1,12 +1,12 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/screens/forms/edit_user_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_user_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/widgets/header.dart';
 import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/screens/forms/add_user_screen.dart';  // Asegúrate de importar la pantalla para agregar un nuevo usuario
+import 'package:mspaa/screens/forms/add/add_user_screen.dart';  // Asegúrate de importar la pantalla para agregar un nuevo usuario
 
 class UsersView extends StatefulWidget {
   const UsersView({super.key});

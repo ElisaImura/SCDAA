@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/activity_provider.dart';
 import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/edit_activity_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_activity_screen.dart';
 import 'package:provider/provider.dart';
 
 class ActivityDetailScreen extends StatefulWidget {

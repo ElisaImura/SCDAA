@@ -59,10 +59,12 @@ void _login() async {
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
                   "Iniciar Sesión",
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -96,13 +98,26 @@ void _login() async {
                     return null;
                   },
                 ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      GoRouter.of(context).go('/forgot-password');
+                    },
+                    child: Text(
+                      "¿Olvidaste tu contraseña?",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                  ),
+                ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 10),
                   Text(_errorMessage!, style: TextStyle(color: Colors.red)),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         onPressed: _login,
                         style: ElevatedButton.styleFrom(

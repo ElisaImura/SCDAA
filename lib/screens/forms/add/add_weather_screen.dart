@@ -1,62 +1,51 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mspaa/screens/forms/add/add_lote_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
-import 'package:mspaa/providers/lotes_provider.dart';
+import 'package:mspaa/providers/lotes_provider.dart'; // Asegúrate de importar el provider correcto
+import 'package:mspaa/providers/users_provider.dart';
 
-class EditWeatherScreen extends StatefulWidget {
-  final Map<String, dynamic> weather;
-
-  const EditWeatherScreen({super.key, required this.weather});
+class AddWeatherScreen extends StatefulWidget {
+  final bool isFromFooter;
+  const AddWeatherScreen({super.key, this.isFromFooter = false});
 
   @override
-  _EditWeatherScreenState createState() => _EditWeatherScreenState();
+  _AddWeatherScreenState createState() => _AddWeatherScreenState();
 }
 
-class _EditWeatherScreenState extends State<EditWeatherScreen> {
+class _AddWeatherScreenState extends State<AddWeatherScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _vientoController = TextEditingController();
   final TextEditingController _temperaturaController = TextEditingController();
   final TextEditingController _humedadController = TextEditingController();
   final TextEditingController _lluviaController = TextEditingController();
 
-  late DateTime _selectedDate;
-  late DateTime _originalDate;
+  DateTime _selectedDate = DateTime.now();
   int? _selectedLoteId;
-  late int _originalLoteId;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime.parse(widget.weather['cl_fecha']);
-    _originalDate = _selectedDate;
-    _selectedLoteId = widget.weather['lot_id'];
-    _originalLoteId = widget.weather['lot_id'];
-
-    _vientoController.text = widget.weather['cl_viento'].toString();
-    _temperaturaController.text = widget.weather['cl_temp'].toString();
-    _humedadController.text = widget.weather['cl_hume'].toString();
-    _lluviaController.text = widget.weather['cl_lluvia'].toString();
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
-      await Provider.of<WeatherProvider>(context, listen: false).checkWeatherForDate(
-        DateFormat('yyyy-MM-dd').format(_selectedDate),
-        _selectedLoteId!,
-      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final weatherProvider = Provider.of<WeatherProvider>(context);
-    final lotes = Provider.of<LotesProvider>(context).lotes;
+    final lotesProvider = Provider.of<LotesProvider>(context);
+    final lotes = lotesProvider.lotes;
+    final userInfo = Provider.of<UsersProvider>(context, listen: false).userData;
+    final isAdmin = userInfo?['rol']?['rol_id'] == 1;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Editar Datos del Clima"),
+        title: const Text("Agregar Datos del Clima"),
       ),
       body: weatherProvider.isLoading || lotes.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -69,7 +58,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
                   children: [
                     _buildDatePicker(weatherProvider),
                     const SizedBox(height: 20),
-                    _buildLoteDropdown(weatherProvider, lotes.cast<Map<String, dynamic>>()),
+                    _buildLoteDropdown(weatherProvider, lotes.cast<Map<String, dynamic>>(), isAdmin),
                     const SizedBox(height: 20),
                     _buildVientoField(),
                     const SizedBox(height: 20),
@@ -89,7 +78,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
 
   Widget _buildDatePicker(WeatherProvider weatherProvider) {
     return ListTile(
-      title: Text("Fecha: \${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
+      title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
       trailing: const Icon(Icons.calendar_today),
       onTap: () async {
         DateTime? pickedDate = await showDatePicker(
@@ -114,31 +103,60 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
     );
   }
 
-  Widget _buildLoteDropdown(WeatherProvider weatherProvider, List<Map<String, dynamic>> lotes) {
+  Widget _buildLoteDropdown(WeatherProvider weatherProvider, List<Map<String, dynamic>> lotes, bool isAdmin) {
     return DropdownButtonFormField<int>(
       decoration: const InputDecoration(
         labelText: "Seleccionar lote",
         border: OutlineInputBorder(),
       ),
       value: _selectedLoteId,
-      items: lotes.map((lote) {
-        return DropdownMenuItem<int>(
-          value: lote['lot_id'],
-          child: Text(lote['lot_nombre'] ?? 'Sin nombre'),
-        );
-      }).toList(),
-      onChanged: (value) async {
-        if (value == null) return;
-
-        setState(() {
-          _selectedLoteId = value;
-        });
-
-        if (value != _originalLoteId || _selectedDate != _originalDate) {
-          await weatherProvider.checkWeatherForDate(
-            DateFormat('yyyy-MM-dd').format(_selectedDate),
-            value,
+      items: [
+        ...lotes.map((lote) {
+          return DropdownMenuItem<int>(
+            value: lote['lot_id'],
+            child: Text(lote['lot_nombre'] ?? 'Sin nombre'),
           );
+        }),
+        if (isAdmin)
+          const DropdownMenuItem<int>(
+            value: -1,
+            child: Text("➕ Crear nuevo lote"),
+          ),
+      ],
+      onChanged: (value) async {
+        if (value == -1) {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddLoteScreen()),
+          );
+
+          if (result == true) {
+            await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+
+            // Asignar el último lote como seleccionado
+            final nuevosLotes = Provider.of<LotesProvider>(context, listen: false).lotes;
+            if (nuevosLotes.isNotEmpty) {
+              setState(() {
+                _selectedLoteId = nuevosLotes.last['lot_id'];
+              });
+
+              await weatherProvider.checkWeatherForDate(
+                DateFormat('yyyy-MM-dd').format(_selectedDate),
+                _selectedLoteId!,
+              );
+            }
+          }
+        } else {
+          setState(() {
+            _selectedLoteId = value;
+          });
+
+          if (value != null) {
+            await weatherProvider.checkWeatherForDate(
+              DateFormat('yyyy-MM-dd').format(_selectedDate),
+              value,
+            );
+          }
         }
       },
     );
@@ -151,10 +169,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Velocidad del Viento (m/s)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Por favor, ingresa la velocidad del viento.'
-          : null,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
     );
   }
 
@@ -165,10 +180,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Temperatura (°C)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Por favor, ingresa la temperatura.'
-          : null,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
     );
   }
 
@@ -180,9 +192,6 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         border: OutlineInputBorder(),
       ),
       keyboardType: TextInputType.number,
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Por favor, ingresa la humedad.'
-          : null,
     );
   }
 
@@ -193,27 +202,33 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Cantidad de Lluvia (mm)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Por favor, ingresa la cantidad de lluvia.'
-          : null,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
     );
   }
 
-  Widget _buildSaveButton(WeatherProvider weatherProvider) {
-    final isDuplicate = (_selectedDate != _originalDate || _selectedLoteId != _originalLoteId) && weatherProvider.isWeatherAvailable;
+  bool _validateFields() {
+    return _vientoController.text.isNotEmpty ||
+        _temperaturaController.text.isNotEmpty ||
+        _humedadController.text.isNotEmpty ||
+        _lluviaController.text.isNotEmpty;
+  }
 
+  Widget _buildSaveButton(WeatherProvider weatherProvider) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: isDuplicate
+        onPressed: weatherProvider.isWeatherAvailable
             ? null
             : () async {
-                if (_formKey.currentState!.validate()) {
-                  final nuevaFecha = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
-                  Map<String, dynamic> updatedData = {
-                    "cl_fecha": nuevaFecha,
+                if (_selectedLoteId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Seleccioná un lote antes de guardar.")),
+                  );
+                  return;
+                }
+                if (_formKey.currentState!.validate() && _validateFields()) {
+                  Map<String, dynamic> weatherData = {
+                    "cl_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
                     "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
                     "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
                     "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
@@ -221,34 +236,29 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
                     "lot_id": _selectedLoteId!,
                   };
 
-                  bool success = await weatherProvider.editWeather(widget.weather['cl_id'], updatedData);
+                  bool success = await weatherProvider.addWeatherData(weatherData);
 
                   if (success) {
-                    await weatherProvider.fetchWeatherData();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Datos del clima actualizados con éxito")),
+                      const SnackBar(content: Text("Datos del clima guardados con éxito")),
                     );
-                    Navigator.pop(context, true);
+
+                    widget.isFromFooter ? context.go('/home') : Navigator.pop(context);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Error al actualizar los datos del clima")),
+                      const SnackBar(content: Text("Error al guardar los datos del clima")),
                     );
                   }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Por favor, complete al menos un campo de datos del clima")),
+                  );
                 }
               },
-        child: isDuplicate
+        child: weatherProvider.isWeatherAvailable
             ? const Text("Clima ya registrado para esta fecha y lote")
             : const Text("Guardar Datos"),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _vientoController.dispose();
-    _temperaturaController.dispose();
-    _humedadController.dispose();
-    _lluviaController.dispose();
-    super.dispose();
   }
 }

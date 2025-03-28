@@ -207,4 +207,50 @@ class UsersProvider with ChangeNotifier {
     }
   }
 
+  // Función para actualizar solo el nombre de usuario y el correo electrónico
+  Future<bool> updateUsernameAndEmail(String? newUsername, String? newEmail) async {
+    final ApiService apiService = ApiService();
+    try {
+      // ✅ Llamada corregida con parámetros con nombre
+      bool success = await apiService.updateUsernameAndEmail(
+        newUsername: newUsername,
+        newEmail: newEmail,
+      );
+
+      if (success) {
+        await fetchUsers(); // Actualizar datos locales si todo fue bien
+      }
+
+      return success;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error al actualizar el nombre de usuario y correo electrónico: $e");
+      }
+      return false;
+    }
+  }
+
+  // Cambiar contraseña
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final ApiService apiService = ApiService();
+      final success = await apiService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
+
+      return success;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error al cambiar la contraseña: $e");
+      }
+      return false;
+    }
+  }
+
 }

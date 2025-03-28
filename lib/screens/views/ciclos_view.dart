@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/cycle_provider.dart';
-import 'package:mspaa/screens/forms/add_cycle_screen.dart';
-import 'package:mspaa/screens/forms/edit_cycle_screen.dart';
+import 'package:mspaa/screens/forms/add/add_cycle_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_cycle_screen.dart';
 
 class CiclosView extends StatefulWidget {
   const CiclosView({super.key});

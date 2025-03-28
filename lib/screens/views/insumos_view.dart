@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/insumos_provider.dart';
-import 'package:mspaa/screens/forms/add_insumo_screen.dart';
-import 'package:mspaa/screens/forms/edit_insumo_screen.dart';
+import 'package:mspaa/screens/forms/add/add_insumo_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_insumo_screen.dart';
 
 class InsumosView extends StatefulWidget {
   const InsumosView({super.key});

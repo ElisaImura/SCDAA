@@ -90,6 +90,45 @@ class ApiService {
     }
   }
 
+  /// Contraseña olvidada. Request password reset token
+  Future<bool> sendPasswordResetEmail(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  // Reset password
+  Future<bool> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/reset-password'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "token": token,
+        "uss_clave": newPassword,
+        "uss_clave_confirmation": confirmPassword,
+      }),
+    );
+
+    print(jsonEncode({
+        "email": email,
+        "token": token,
+        "uss_clave": newPassword,
+        "uss_clave_confirmation": confirmPassword,
+      }));
+
+    return response.statusCode == 200;
+  }
+
   /// 🔹 Obtener las actividades con autenticación
   Future<List<Map<String, dynamic>>> fetchActividades() async {
     final String? token = await _getToken();
@@ -1234,4 +1273,58 @@ class ApiService {
       throw Exception("Error al obtener lluvias por fecha");
     }
   }
+
+  // Cambiar username y/o email
+  Future<bool> updateUsernameAndEmail({String? newUsername, String? newEmail}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final userId = prefs.getInt('uss_id');
+
+    if (token == null || userId == null) return false;
+
+    final Map<String, dynamic> body = {};
+    if (newUsername != null) body["uss_nombre"] = newUsername;
+    if (newEmail != null) body["email"] = newEmail;
+
+    if (body.isEmpty) return false; // No hay nada que actualizar
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/usuarios/$userId'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode(body),
+    );
+
+    print(jsonEncode(body));
+
+    return response.statusCode == 200;
+  }
+
+  // Cambiar contraseña
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final token = await _getToken();
+    if (token == null) return false;
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/change-password'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "current_password": currentPassword,
+        "new_password": newPassword,
+        "new_password_confirmation": confirmPassword,
+      }),
+    );
+
+    return response.statusCode == 200;
+  }
+
 }

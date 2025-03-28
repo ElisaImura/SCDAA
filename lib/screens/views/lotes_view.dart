@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/edit_lote_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_lote_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/lotes_provider.dart';
-import 'package:mspaa/screens/forms/add_lote_screen.dart';
+import 'package:mspaa/screens/forms/add/add_lote_screen.dart';
 
 class LotesView extends StatefulWidget {
   const LotesView({super.key});

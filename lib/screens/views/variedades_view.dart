@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/cultivos_variedades_provider.dart';
-import 'package:mspaa/screens/forms/add_variedad_screen.dart';
-import 'package:mspaa/screens/forms/edit_variedad_screen.dart';
+import 'package:mspaa/screens/forms/add/add_variedad_screen.dart';
+import 'package:mspaa/screens/forms/edit/edit_variedad_screen.dart';
 
 class VariedadesView extends StatefulWidget {
   final Map<String, dynamic> cultivo;
