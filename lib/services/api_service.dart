@@ -42,8 +42,6 @@ class ApiService {
       body: jsonEncode({"email": email, "uss_clave": password}),
     );
 
-    print('${jsonEncode({"email": email, "uss_clave": password})}');
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 

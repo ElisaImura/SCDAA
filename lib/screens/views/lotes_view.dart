@@ -76,7 +76,60 @@ class _LotesViewState extends State<LotesView> {
               final lotes = lotesProvider.lotes;
 
               if (lotes.isEmpty) {
-                return const Center(child: Text('No hay lotes disponibles.'));
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      child: Text(
+                        'Lista de Lotes',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                      ),
+                    ),
+                    if (isAdmin)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final result = await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const AddLoteScreen(),
+                                ),
+                              );
+
+                              if (result == true) {
+                                await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+                                setState(() {});
+                              }
+                            },
+                            icon: const Icon(Icons.add_location_alt),
+                            label: const Text("Agregar Lote"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'No hay lotes disponibles.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
               }
 
               return Column(

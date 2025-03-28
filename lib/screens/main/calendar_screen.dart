@@ -46,7 +46,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _fetchData() async {
     final calendarProvider = Provider.of<CalendarProvider>(context, listen: false);
+    final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
     await calendarProvider.fetchData();
+    await weatherProvider.fetchWeatherData();
 
     if (mounted) {
       setState(() {
@@ -73,86 +75,148 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final calendarProvider = Provider.of<CalendarProvider>(context);
+    final weatherProvider = Provider.of<WeatherProvider>(context);
 
     return Scaffold(
       body: calendarProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                TableCalendar(
-                  locale: 'es_ES',
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  calendarFormat: _calendarFormat,
-                  eventLoader: (day) {
-                    DateTime fechaNormalizada = DateTime.utc(day.year, day.month, day.day);
-                    return calendarProvider.events[fechaNormalizada] ?? [];
-                  },
-                  onDaySelected: (selectedDay, focusedDay) {
-                    if (mounted) {
-                      setState(() {
-                        _selectedDay = selectedDay;
+          : NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverToBoxAdapter(
+                    child: TableCalendar(
+                      locale: 'es_ES',
+                      firstDay: DateTime.utc(2020, 1, 1),
+                      lastDay: DateTime.utc(2030, 12, 31),
+                      focusedDay: _focusedDay,
+                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                      calendarFormat: _calendarFormat,
+                      eventLoader: (day) {
+                        final fecha = DateTime.utc(day.year, day.month, day.day);
+                        return calendarProvider.events[fecha] ?? [];
+                      },
+                      onDaySelected: (selectedDay, focusedDay) {
+                        setState(() {
+                          _selectedDay = selectedDay;
+                          _focusedDay = focusedDay;
+                          _mostrarTodas = false;
+                          _calendarFormat = CalendarFormat.week; // Colapsar automáticamente
+                        });
+                      },
+                      onFormatChanged: (format) {
+                        setState(() {
+                          _calendarFormat = format;
+                        });
+                      },
+                      onPageChanged: (focusedDay) {
                         _focusedDay = focusedDay;
-                        _mostrarTodas = false;
-                      });
-                    }
-                  },
-                  onFormatChanged: (format) {
-                    if (mounted) {
-                      setState(() {
-                        _calendarFormat = format;
-                      });
-                    }
-                  },
-                  calendarStyle: CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: const Color(0xFF649966).withOpacity(0.5),
-                      shape: BoxShape.circle,
+                      },
+                      calendarStyle: CalendarStyle(
+                        todayDecoration: BoxDecoration(
+                          color: const Color(0xFF649966).withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        selectedDecoration: const BoxDecoration(
+                          color: Color(0xFF649966),
+                          shape: BoxShape.circle,
+                        ),
+                        markersAlignment: Alignment.bottomCenter,
+                        markersMaxCount: 3,
+                      ),
+                      headerStyle: const HeaderStyle(
+                        formatButtonVisible: false,
+                        titleCentered: true,
+                      ),
                     ),
-                    selectedDecoration: const BoxDecoration(
-                      color: Color(0xFF649966),
-                      shape: BoxShape.circle,
-                    ),
-                    markersAlignment: Alignment.bottomCenter,
-                    markersMaxCount: 3,
                   ),
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                  ),
-                ),
-                _buildWeatherSection(calendarProvider), // Sección de clima
-                Expanded(child: _buildEventList(calendarProvider)), // Lista de actividades
-              ],
+                ];
+              },
+              body: Column(
+                children: [
+                  _buildWeatherSection(calendarProvider, weatherProvider),
+                  _buildEventList(calendarProvider),
+                ],
+              ),
             ),
     );
   }
 
-  Widget _buildWeatherSection(CalendarProvider calendarProvider) {
+  Widget _buildWeatherSection(CalendarProvider calendarProvider, WeatherProvider weatherProvider) {
     if (_selectedDay == null) return const SizedBox();
 
     DateTime fechaNormalizada = DateTime.utc(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
-    final clima = calendarProvider.weather[fechaNormalizada];
+    final climas = weatherProvider.weatherPorFecha[fechaNormalizada] ?? [];
 
-    if (clima == null) return const SizedBox();
+    if (climas.isEmpty) return const SizedBox();
 
-    return GestureDetector(
-      onTap: () => _mostrarDialogoClima(context, fechaNormalizada),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        color: const Color.fromARGB(255, 202, 221, 192),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    final PageController controller = PageController();
+    int currentIndex = 0;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Stack(
           children: [
-            _buildWeatherItem('${clima['cl_viento']} m/s', WeatherIcons.windy),
-            _buildWeatherItem('${clima['cl_temp']} °C', WeatherIcons.thermometer),
-            _buildWeatherItem('${clima['cl_hume']}%', WeatherIcons.humidity),
-            _buildWeatherItem('${clima['cl_lluvia']} mm', WeatherIcons.rain),
+            SizedBox(
+              height: 110,
+              width: double.infinity,
+              child: PageView.builder(
+                controller: controller,
+                itemCount: climas.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    currentIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final clima = climas[index];
+                  final loteNombre = clima['lote']?['lot_nombre'] ?? 'Lote desconocido';
+
+                  return GestureDetector(
+                    onTap: () => _mostrarDialogoClima(context, fechaNormalizada, clima),
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      color: const Color.fromARGB(255, 202, 221, 192),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Clima del lote $loteNombre',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildWeatherItem('${clima['cl_viento']} m/s', WeatherIcons.windy),
+                              _buildWeatherItem('${clima['cl_temp']} °C', WeatherIcons.thermometer),
+                              _buildWeatherItem('${clima['cl_hume']}%', WeatherIcons.humidity),
+                              _buildWeatherItem('${clima['cl_lluvia']} mm', WeatherIcons.rain),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (currentIndex > 0)
+              const Positioned(
+                left: 8,
+                top: 40,
+                child: Icon(Icons.chevron_left, size: 32, color: Colors.black45),
+              ),
+            if (currentIndex < climas.length - 1)
+              const Positioned(
+                right: 8,
+                top: 40,
+                child: Icon(Icons.chevron_right, size: 32, color: Colors.black45),
+              ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -219,20 +283,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _mostrarDialogoClima(BuildContext context, DateTime fecha) {
+  void _mostrarDialogoClima(BuildContext context, DateTime fecha, Map<String, dynamic> clima) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
-            children: const [
-              Icon(Icons.cloud, color: Color(0xFF49784F)),
-              SizedBox(width: 8),
+            children: [
+              const Icon(Icons.cloud, color: Color(0xFF49784F)),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Opciones del Clima',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  'Opciones del Clima (${clima["lote"]?["lot_nombre"] ?? "Lote"})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -257,20 +321,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
-                  final clima = Provider.of<CalendarProvider>(context, listen: false).weather[fecha];
-
-                  if (clima != null) {
-                    Navigator.of(context).pop(); // Cierra el diálogo
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => EditWeatherScreen(weather: clima),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No se encontró información del clima para esta fecha.')),
-                    );
-                  }
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => EditWeatherScreen(weather: clima),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 10),
@@ -284,8 +340,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 onPressed: () async {
                   final provider = Provider.of<WeatherProvider>(context, listen: false);
-                  final clima = Provider.of<CalendarProvider>(context, listen: false).weather[fecha];
-                  final eliminado = clima != null ? await provider.deleteWeather(clima['cl_id']) : false;
+                  final eliminado = await provider.deleteWeather(clima['cl_id']);
                   Navigator.of(context).pop();
                   if (eliminado) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -310,5 +365,5 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
-    
+
 }

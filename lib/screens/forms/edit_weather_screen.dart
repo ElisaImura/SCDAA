@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/weather_provider.dart';
+import 'package:mspaa/providers/lotes_provider.dart';
 
 class EditWeatherScreen extends StatefulWidget {
   final Map<String, dynamic> weather;
@@ -16,40 +17,48 @@ class EditWeatherScreen extends StatefulWidget {
 
 class _EditWeatherScreenState extends State<EditWeatherScreen> {
   final _formKey = GlobalKey<FormState>();
-  TextEditingController _vientoController = TextEditingController();
-  TextEditingController _temperaturaController = TextEditingController();
-  TextEditingController _humedadController = TextEditingController();
-  TextEditingController _lluviaController = TextEditingController();
+  final TextEditingController _vientoController = TextEditingController();
+  final TextEditingController _temperaturaController = TextEditingController();
+  final TextEditingController _humedadController = TextEditingController();
+  final TextEditingController _lluviaController = TextEditingController();
 
   late DateTime _selectedDate;
   late DateTime _originalDate;
+  int? _selectedLoteId;
+  late int _originalLoteId;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.parse(widget.weather['cl_fecha']);
-    _vientoController = TextEditingController(text: widget.weather['cl_viento'].toString());
-    _temperaturaController = TextEditingController(text: widget.weather['cl_temp'].toString());
-    _humedadController = TextEditingController(text: widget.weather['cl_hume'].toString());
-    _lluviaController = TextEditingController(text: widget.weather['cl_lluvia'].toString());
-    _originalDate = DateTime.parse(widget.weather['cl_fecha']);
-    _selectedDate = _originalDate;
+    _originalDate = _selectedDate;
+    _selectedLoteId = widget.weather['lot_id'];
+    _originalLoteId = widget.weather['lot_id'];
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+    _vientoController.text = widget.weather['cl_viento'].toString();
+    _temperaturaController.text = widget.weather['cl_temp'].toString();
+    _humedadController.text = widget.weather['cl_hume'].toString();
+    _lluviaController.text = widget.weather['cl_lluvia'].toString();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+      await Provider.of<WeatherProvider>(context, listen: false).checkWeatherForDate(
+        DateFormat('yyyy-MM-dd').format(_selectedDate),
+        _selectedLoteId!,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final weatherProvider = Provider.of<WeatherProvider>(context);
+    final lotes = Provider.of<LotesProvider>(context).lotes;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Agregar Datos del Clima"),
+        title: const Text("Editar Datos del Clima"),
       ),
-      body: weatherProvider.isLoading
+      body: weatherProvider.isLoading || lotes.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -59,6 +68,8 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDatePicker(weatherProvider),
+                    const SizedBox(height: 20),
+                    _buildLoteDropdown(weatherProvider, lotes.cast<Map<String, dynamic>>()),
                     const SizedBox(height: 20),
                     _buildVientoField(),
                     const SizedBox(height: 20),
@@ -78,7 +89,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
 
   Widget _buildDatePicker(WeatherProvider weatherProvider) {
     return ListTile(
-      title: Text("Fecha: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
+      title: Text("Fecha: \${DateFormat('yyyy-MM-dd').format(_selectedDate)}"),
       trailing: const Icon(Icons.calendar_today),
       onTap: () async {
         DateTime? pickedDate = await showDatePicker(
@@ -91,9 +102,45 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
           setState(() {
             _selectedDate = pickedDate;
           });
-          await weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+
+          if (_selectedLoteId != null) {
+            await weatherProvider.checkWeatherForDate(
+              DateFormat('yyyy-MM-dd').format(_selectedDate),
+              _selectedLoteId!,
+            );
+          }
         }
-      }
+      },
+    );
+  }
+
+  Widget _buildLoteDropdown(WeatherProvider weatherProvider, List<Map<String, dynamic>> lotes) {
+    return DropdownButtonFormField<int>(
+      decoration: const InputDecoration(
+        labelText: "Seleccionar lote",
+        border: OutlineInputBorder(),
+      ),
+      value: _selectedLoteId,
+      items: lotes.map((lote) {
+        return DropdownMenuItem<int>(
+          value: lote['lot_id'],
+          child: Text(lote['lot_nombre'] ?? 'Sin nombre'),
+        );
+      }).toList(),
+      onChanged: (value) async {
+        if (value == null) return;
+
+        setState(() {
+          _selectedLoteId = value;
+        });
+
+        if (value != _originalLoteId || _selectedDate != _originalDate) {
+          await weatherProvider.checkWeatherForDate(
+            DateFormat('yyyy-MM-dd').format(_selectedDate),
+            value,
+          );
+        }
+      },
     );
   }
 
@@ -104,7 +151,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Velocidad del Viento (m/s)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: (value) => (value == null || value.isEmpty)
           ? 'Por favor, ingresa la velocidad del viento.'
           : null,
@@ -118,7 +165,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Temperatura (°C)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: (value) => (value == null || value.isEmpty)
           ? 'Por favor, ingresa la temperatura.'
           : null,
@@ -146,7 +193,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
         labelText: "Cantidad de Lluvia (mm)",
         border: OutlineInputBorder(),
       ),
-      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: (value) => (value == null || value.isEmpty)
           ? 'Por favor, ingresa la cantidad de lluvia.'
           : null,
@@ -154,15 +201,16 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
   }
 
   Widget _buildSaveButton(WeatherProvider weatherProvider) {
+    final isDuplicate = (_selectedDate != _originalDate || _selectedLoteId != _originalLoteId) && weatherProvider.isWeatherAvailable;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _selectedDate != _originalDate && weatherProvider.isWeatherAvailable
+        onPressed: isDuplicate
             ? null
             : () async {
                 if (_formKey.currentState!.validate()) {
                   final nuevaFecha = DateFormat('yyyy-MM-dd').format(_selectedDate);
-                  DateFormat('yyyy-MM-dd').format(_originalDate);
 
                   Map<String, dynamic> updatedData = {
                     "cl_fecha": nuevaFecha,
@@ -170,6 +218,7 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
                     "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
                     "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
                     "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
+                    "lot_id": _selectedLoteId!,
                   };
 
                   bool success = await weatherProvider.editWeather(widget.weather['cl_id'], updatedData);
@@ -187,8 +236,8 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
                   }
                 }
               },
-        child: _selectedDate != _originalDate && weatherProvider.isWeatherAvailable  // Change button text based on weather availability
-            ? const Text("Clima ya registrado para esta fecha")
+        child: isDuplicate
+            ? const Text("Clima ya registrado para esta fecha y lote")
             : const Text("Guardar Datos"),
       ),
     );

@@ -21,10 +21,6 @@ class _ActivitiesViewState extends State<ActivitiesView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Actividades'),
-        backgroundColor: Colors.green,  // Change the appBar color
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),  // Add padding around the body
         child: Column(

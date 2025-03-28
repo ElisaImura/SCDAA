@@ -25,7 +25,7 @@ class ConfigScreen extends StatelessWidget {
           _buildListTile(Icons.lock, 'Contraseña', () {}),
 
           _buildSectionTitle('Sistema'),
-          _buildListTile(Icons.notifications, 'Notificaciones', () {}),
+          _buildListTile(Icons.notifications, 'Notificaciones', () {}, isDisabled: true),
 
           if (userRoleId == 1) ...[
             _buildSectionTitle('Seguridad y Auditoría'),

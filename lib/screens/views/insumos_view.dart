@@ -40,7 +40,55 @@ class _InsumosViewState extends State<InsumosView> {
             final insumos = insumosProvider.insumos;
 
             if (insumos.isEmpty) {
-              return const Center(child: Text('No hay insumos disponibles.'));
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                    child: Text(
+                      'Lista de Insumos',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                    ),
+                  ),
+                  if (isAdmin || tienePermisoInsumos)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const AddInsumoScreen(),
+                              ),
+                            );
+
+                            if (result == true) {
+                              await Provider.of<InsumosProvider>(context, listen: false).fetchInsumos();
+                              setState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.add_box),
+                          label: const Text("Agregar Insumo"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const Expanded(
+                    child: Center(child: Text('No hay insumos disponibles.')),
+                  ),
+                ],
+              );
             }
 
             return Column(

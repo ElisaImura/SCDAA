@@ -41,21 +41,27 @@ class ReportesProvider with ChangeNotifier {
   }
 
   // Dias de lluvia en rango de fechas
-  Future<void> fetchLluviasPorFecha(DateTime fechaInicio, DateTime fechaFin) async {
-    cargando = true;
-    notifyListeners();
-
+  Future<void> fetchLluviasPorFecha(DateTime inicio, DateTime fin, {int? loteId}) async {
     try {
-      final datos = await _apiService.fetchLluviasPorFecha(fechaInicio, fechaFin);
-      lluviasPorFecha = datos; // Guardamos los datos correctamente
-      error = null;
-    } catch (e) {
-      error = "Error inesperado: $e";
-      lluviasPorFecha = [];
-    }
+      cargando = true;
+      notifyListeners();
 
-    cargando = false;
-    notifyListeners();
+      final datos = await _apiService.fetchLluviasPorFecha(inicio, fin); // Asegurate que este método obtenga todos los climas en ese rango
+
+      // Si se pasa un loteId, filtramos
+      if (loteId != null) {
+        lluviasPorFecha = datos.where((d) => d['lot_id'] == loteId).toList();
+      } else {
+        lluviasPorFecha = datos;
+      }
+
+      cargando = false;
+      notifyListeners();
+    } catch (e) {
+      error = "Error al cargar datos de lluvia";
+      cargando = false;
+      notifyListeners();
+    }
   }
 
   Future<void> cargarCiclos() async {

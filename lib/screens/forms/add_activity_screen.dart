@@ -44,7 +44,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     // Verifica si existe clima para la fecha seleccionada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate)); // Verificar el clima para la fecha seleccionada
+      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate), 1); // Verificar el clima para la fecha seleccionada
     });
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -83,7 +83,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
             _selectedDate = pickedDate;
             // Verifica si existe clima para la fecha seleccionada
             final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-            weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+            weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate),1);
             if (_isFutureDate()) {
               _changeActivityState('Pendiente');
             }

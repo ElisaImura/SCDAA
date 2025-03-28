@@ -3,8 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mspaa/screens/forms/add_lote_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/weather_provider.dart'; // Asegúrate de importar el WeatherProvider
+import 'package:mspaa/providers/weather_provider.dart';
+import 'package:mspaa/providers/lotes_provider.dart'; // Asegúrate de importar el provider correcto
+import 'package:mspaa/providers/users_provider.dart';
 
 class AddWeatherScreen extends StatefulWidget {
   final bool isFromFooter;
@@ -22,29 +25,30 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
   final TextEditingController _lluviaController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
+  int? _selectedLoteId;
 
   @override
   void initState() {
     super.initState();
-
-    // Schedule the weather check after the frame is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Acceder al WeatherProvider correctamente
     final weatherProvider = Provider.of<WeatherProvider>(context);
+    final lotesProvider = Provider.of<LotesProvider>(context);
+    final lotes = lotesProvider.lotes;
+    final userInfo = Provider.of<UsersProvider>(context, listen: false).userData;
+    final isAdmin = userInfo?['rol']?['rol_id'] == 1;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Agregar Datos del Clima"),
       ),
-      body: weatherProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())  // Muestra un cargador mientras se obtiene la información
+      body: weatherProvider.isLoading || lotes.isEmpty
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -54,6 +58,8 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
                   children: [
                     _buildDatePicker(weatherProvider),
                     const SizedBox(height: 20),
+                    _buildLoteDropdown(weatherProvider, lotes.cast<Map<String, dynamic>>(), isAdmin),
+                    const SizedBox(height: 20),
                     _buildVientoField(),
                     const SizedBox(height: 20),
                     _buildTemperaturaField(),
@@ -62,7 +68,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
                     const SizedBox(height: 20),
                     _buildLluviaField(),
                     const SizedBox(height: 20),
-                    _buildSaveButton(weatherProvider),  // Pasa el provider al botón para que lo utilice
+                    _buildSaveButton(weatherProvider),
                   ],
                 ),
               ),
@@ -85,7 +91,72 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
           setState(() {
             _selectedDate = pickedDate;
           });
-          await weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate));
+
+          if (_selectedLoteId != null) {
+            await weatherProvider.checkWeatherForDate(
+              DateFormat('yyyy-MM-dd').format(_selectedDate),
+              _selectedLoteId!,
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildLoteDropdown(WeatherProvider weatherProvider, List<Map<String, dynamic>> lotes, bool isAdmin) {
+    return DropdownButtonFormField<int>(
+      decoration: const InputDecoration(
+        labelText: "Seleccionar lote",
+        border: OutlineInputBorder(),
+      ),
+      value: _selectedLoteId,
+      items: [
+        ...lotes.map((lote) {
+          return DropdownMenuItem<int>(
+            value: lote['lot_id'],
+            child: Text(lote['lot_nombre'] ?? 'Sin nombre'),
+          );
+        }),
+        if (isAdmin)
+          const DropdownMenuItem<int>(
+            value: -1,
+            child: Text("➕ Crear nuevo lote"),
+          ),
+      ],
+      onChanged: (value) async {
+        if (value == -1) {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddLoteScreen()),
+          );
+
+          if (result == true) {
+            await Provider.of<LotesProvider>(context, listen: false).fetchLotes();
+
+            // Asignar el último lote como seleccionado
+            final nuevosLotes = Provider.of<LotesProvider>(context, listen: false).lotes;
+            if (nuevosLotes.isNotEmpty) {
+              setState(() {
+                _selectedLoteId = nuevosLotes.last['lot_id'];
+              });
+
+              await weatherProvider.checkWeatherForDate(
+                DateFormat('yyyy-MM-dd').format(_selectedDate),
+                _selectedLoteId!,
+              );
+            }
+          }
+        } else {
+          setState(() {
+            _selectedLoteId = value;
+          });
+
+          if (value != null) {
+            await weatherProvider.checkWeatherForDate(
+              DateFormat('yyyy-MM-dd').format(_selectedDate),
+              value,
+            );
+          }
         }
       },
     );
@@ -146,39 +217,46 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: weatherProvider.isWeatherAvailable // Check if the weather is already available
-            ? null  // Disable the button if the weather data already exists
+        onPressed: weatherProvider.isWeatherAvailable
+            ? null
             : () async {
+                if (_selectedLoteId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Seleccioná un lote antes de guardar.")),
+                  );
+                  return;
+                }
                 if (_formKey.currentState!.validate() && _validateFields()) {
-                  // Crear el objeto de datos del clima
                   Map<String, dynamic> weatherData = {
                     "cl_fecha": DateFormat("yyyy-MM-dd").format(_selectedDate),
                     "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
                     "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
                     "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
                     "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
+                    "lot_id": _selectedLoteId!,
                   };
 
-                  // Llamar al provider para guardar los datos del clima
                   bool success = await weatherProvider.addWeatherData(weatherData);
 
                   if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Datos del clima guardados con éxito")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Datos del clima guardados con éxito")),
+                    );
 
-                    if (widget.isFromFooter) {
-                      context.go('/home'); // Navigate to home if it's from footer
-                    } else {
-                      Navigator.pop(context); // Pop the screen if it's from the form
-                    }
+                    widget.isFromFooter ? context.go('/home') : Navigator.pop(context);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar los datos del clima")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error al guardar los datos del clima")),
+                    );
                   }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, complete al menos un campo de datos del clima")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Por favor, complete al menos un campo de datos del clima")),
+                  );
                 }
               },
-        child: weatherProvider.isWeatherAvailable  // Change button text based on weather availability
-            ? const Text("Clima ya registrado para esta fecha")
+        child: weatherProvider.isWeatherAvailable
+            ? const Text("Clima ya registrado para esta fecha y lote")
             : const Text("Guardar Datos"),
       ),
     );

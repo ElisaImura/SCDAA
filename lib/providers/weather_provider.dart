@@ -9,7 +9,9 @@ class WeatherProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isWeatherAvailable = false;
   final Map<DateTime, Map<String, dynamic>> _weather = {};
+  final Map<DateTime, List<Map<String, dynamic>>> _weatherPorFecha = {};
 
+  Map<DateTime, List<Map<String, dynamic>>> get weatherPorFecha => _weatherPorFecha;
   bool get isLoading => _isLoading;
   bool get isWeatherAvailable => _isWeatherAvailable;
   Map<DateTime, Map<String, dynamic>> get weather => _weather;
@@ -35,20 +37,24 @@ class WeatherProvider with ChangeNotifier {
   }
 
   // Funcion para verificar si ya existe un clima en esa fecha
-  Future<void> checkWeatherForDate(String date) async {
+  Future<void> checkWeatherForDate(String date, int lotId) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final weatherData = await ApiService().getAllWeatherData();
-      _isWeatherAvailable = weatherData.any((clima) => clima['cl_fecha'] == date);  
+      final weatherData = await _apiService.getAllWeatherData(); // O fetchClima()
 
+      _isWeatherAvailable = weatherData.any((clima) =>
+          clima['cl_fecha'] == date && clima['lot_id'] == lotId);
     } catch (e) {
       _isWeatherAvailable = false;
+      if (kDebugMode) print("❌ Error al verificar clima: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+
+    print('Clima disponible para fecha $date y lote $lotId: $_isWeatherAvailable');
   }
 
   // Función para editar datos del clima
@@ -102,12 +108,17 @@ class WeatherProvider with ChangeNotifier {
 
     try {
       final fetchedData = await _apiService.getAllWeatherData();
-      
-      _weather.clear(); // Limpiar el mapa actual
+      _weatherPorFecha.clear();
 
       for (var item in fetchedData) {
         final fecha = DateTime.parse(item['cl_fecha']);
-        _weather[DateTime.utc(fecha.year, fecha.month, fecha.day)] = item;
+        final fechaKey = DateTime.utc(fecha.year, fecha.month, fecha.day);
+
+        if (!_weatherPorFecha.containsKey(fechaKey)) {
+          _weatherPorFecha[fechaKey] = [];
+        }
+
+        _weatherPorFecha[fechaKey]!.add(item);
       }
 
       _isLoading = false;
