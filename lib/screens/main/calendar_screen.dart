@@ -130,11 +130,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 ];
               },
-              body: Column(
-                children: [
-                  _buildWeatherSection(calendarProvider, weatherProvider),
-                  _buildEventList(calendarProvider),
-                ],
+              body: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildWeatherSection(calendarProvider, weatherProvider),
+                    _buildEventList(calendarProvider),
+                  ],
+                ),
               ),
             ),
     );

@@ -33,7 +33,7 @@ class _ActivitiesViewState extends State<ActivitiesView> {
       ),
     );
   }
-
+ 
   Widget _buildActivitiesList() {
     return Consumer<ActivityProvider>(
       builder: (context, activityProvider, child) {

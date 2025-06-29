@@ -288,7 +288,7 @@ class ActivityProvider extends ChangeNotifier {
       _actividades = await _apiService.fetchActividades();
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) print("❌ Error al obtener todas las actividades: $e");
+      if (kDebugMode) print("Error: $e");
     }
   }
 
