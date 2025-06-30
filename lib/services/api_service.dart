@@ -991,10 +991,13 @@ class ApiService {
 
   // 🔹 Editar un ciclo
   Future<bool> editCiclo(int id, Map<String, dynamic> cicloData) async {
-    print(cicloData);
+    final String? token = await _getToken();
     final response = await http.put(
       Uri.parse('$baseUrl/ciclos/$id'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
       body: jsonEncode(cicloData),
     );
 

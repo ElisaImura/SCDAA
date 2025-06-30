@@ -19,23 +19,30 @@ class EditCycleScreen extends StatefulWidget {
 class _EditCycleScreenState extends State<EditCycleScreen> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
-  late String _description;
 
   @override
   void initState() {
     super.initState();
     _name = widget.ciclo['ci_nombre'] ?? '';
-    _description = widget.ciclo['ci_descripcion'] ?? '';
   }
 
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final cicloData = {
+      // Solo agrega los campos que no son null
+      final Map<String, dynamic> cicloData = {
+        'tpVar_id': widget.ciclo['tpVar_id'],
+        'ci_id': widget.ciclo['ci_id'],
+        'uss_id': widget.ciclo['uss_id'],
+        'lot_id': widget.ciclo['lot_id'],
+        'ci_fechaini': widget.ciclo['ci_fechaini'],
         'ci_nombre': _name,
-        if (_description.trim().isNotEmpty) 'ci_descripcion': _description,
-      };
+        'ci_fechafin': widget.ciclo['ci_fechafin'],
+        'cos_rendi': widget.ciclo['cos_rendi'],
+        'cos_hume': widget.ciclo['cos_hume'],
+        'sie_densidad': widget.ciclo['sie_densidad'],
+      }..removeWhere((key, value) => value == null);
 
       Provider.of<CycleProvider>(context, listen: false)
           .editCiclo(widget.ciclo['ci_id'], cicloData)
@@ -87,14 +94,6 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
                       },
                       onSaved: (value) {
                         _name = value!;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      initialValue: _description,
-                      decoration: const InputDecoration(labelText: 'Descripción del Ciclo'),
-                      onSaved: (value) {
-                        _description = value ?? '';
                       },
                     ),
                     const SizedBox(height: 32),
