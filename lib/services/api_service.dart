@@ -991,6 +991,7 @@ class ApiService {
 
   // 🔹 Editar un ciclo
   Future<bool> editCiclo(int id, Map<String, dynamic> cicloData) async {
+    print(cicloData);
     final response = await http.put(
       Uri.parse('$baseUrl/ciclos/$id'),
       headers: {'Content-Type': 'application/json'},

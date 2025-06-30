@@ -38,7 +38,6 @@ void _login() async {
     });
 
     if (success) {
-      print("✅ Login exitoso. Navegando a /home");
       Future.delayed(Duration.zero, () {
         if (mounted) {
           GoRouter.of(context).go('/home');

@@ -34,7 +34,7 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
 
       final cicloData = {
         'ci_nombre': _name,
-        'ci_descripcion': _description,
+        if (_description.trim().isNotEmpty) 'ci_descripcion': _description,
       };
 
       Provider.of<CycleProvider>(context, listen: false)
@@ -93,14 +93,8 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
                     TextFormField(
                       initialValue: _description,
                       decoration: const InputDecoration(labelText: 'Descripción del Ciclo'),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingrese una descripción';
-                        }
-                        return null;
-                      },
                       onSaved: (value) {
-                        _description = value!;
+                        _description = value ?? '';
                       },
                     ),
                     const SizedBox(height: 32),
