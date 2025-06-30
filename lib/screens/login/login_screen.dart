@@ -26,26 +26,29 @@ void _login() async {
       _errorMessage = null;
     });
 
-    Future.microtask(() async {
-      bool success = await _apiService.login(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+    bool success = await _apiService.login(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    if (!mounted) return;
 
-        if (success) {
-          GoRouter.of(context).go('/home');
-        } else {
-          setState(() {
-            _errorMessage = "Credenciales incorrectas.";
-          });
-        }
-      }
+    setState(() {
+      _isLoading = false;
     });
+
+    if (success) {
+      print("✅ Login exitoso. Navegando a /home");
+      Future.delayed(Duration.zero, () {
+        if (mounted) {
+          GoRouter.of(context).go('/home');
+        }
+      });
+    } else {
+      setState(() {
+        _errorMessage = "Credenciales incorrectas.";
+      });
+    }
   }
 }
 

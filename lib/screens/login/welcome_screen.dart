@@ -20,7 +20,7 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Bienvenido a MSPAA",
+                  "Bienvenido a SCDAA",
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

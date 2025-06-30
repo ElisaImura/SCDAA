@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = "https://mspaaapi-production.up.railway.app";
+  static const String baseUrl = "https://mspaaapi-production.up.railway.app/api"; // URL base de la API
 
   /// 🔹 Obtener el token almacenado
   Future<String?> _getToken() async {

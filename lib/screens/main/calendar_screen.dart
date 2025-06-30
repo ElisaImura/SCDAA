@@ -1,12 +1,12 @@
 // ignore_for_file: library_private_types_in_public_api, deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:mspaa/providers/weather_provider.dart';
 import 'package:mspaa/screens/forms/edit/edit_weather_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mspaa/providers/calendar_provider.dart';
 import 'package:mspaa/screens/views/act_detail_screen.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:weather_icons/weather_icons.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -19,9 +19,10 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _focusedDay;
   DateTime? _selectedDay;
-  CalendarFormat _calendarFormat = CalendarFormat.month;
   bool _mostrarTodas = false;
   bool _isFirstLoad = true; // Variable para evitar múltiples cargas innecesarias
+  int _weeksInView = 4;
+  final CalendarController _calendarController = CalendarController();
 
   @override
   void initState() {
@@ -72,73 +73,132 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  bool _tieneClima(DateTime date, Map<DateTime, List<Map<String, dynamic>>> climas) {
+    final fechaNormalizada = DateTime.utc(date.year, date.month, date.day);
+    return climas.containsKey(fechaNormalizada);
+  }
+
   @override
   Widget build(BuildContext context) {
     final calendarProvider = Provider.of<CalendarProvider>(context);
     final weatherProvider = Provider.of<WeatherProvider>(context);
+    final eventDataSource = EventDataSource(
+      eventos: calendarProvider.events,
+      climas: weatherProvider.weatherPorFecha,
+    );
+
+    // --- Solo cambia la cantidad de semanas visibles, no la altura ---
+    final int minWeeks = 1;
+    final int maxWeeks = 4;
+    final int weeksInView = _weeksInView.clamp(minWeeks, maxWeeks);
+
+    final double weekHeight = 55; // altura estimada por semana
+    final double headerHeight = 60; // para el encabezado del calendario
+    final double padding = 20; // márgenes/paddings extra
+
+    final double calendarHeight = weekHeight * weeksInView + headerHeight + padding;
+    // Altura fija para el calendario
 
     return Scaffold(
       body: calendarProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverToBoxAdapter(
-                    child: TableCalendar(
-                      locale: 'es_ES',
-                      firstDay: DateTime.utc(2020, 1, 1),
-                      lastDay: DateTime.utc(2030, 12, 31),
-                      focusedDay: _focusedDay,
-                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                      calendarFormat: _calendarFormat,
-                      eventLoader: (day) {
-                        final fecha = DateTime.utc(day.year, day.month, day.day);
-                        return calendarProvider.events[fecha] ?? [];
+          : Column(
+              children: [
+                GestureDetector(
+                  onVerticalDragUpdate: (details) {
+                    setState(() {
+                      if (details.delta.dy < -8 && _weeksInView > minWeeks) {
+                        _weeksInView = (_weeksInView - 1).clamp(minWeeks, maxWeeks);
+                      } else if (details.delta.dy > 8 && _weeksInView < maxWeeks) {
+                        _weeksInView = (_weeksInView + 1).clamp(minWeeks, maxWeeks);
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: calendarHeight,
+                    child: SfCalendar(
+                      controller: _calendarController,
+                      view: CalendarView.month,
+                      monthViewSettings: _weeksInView == 4
+                        ? const MonthViewSettings(
+                            appointmentDisplayMode: MonthAppointmentDisplayMode.indicator,
+                            showAgenda: false,
+                          )
+                        : MonthViewSettings(
+                            numberOfWeeksInView: _weeksInView,
+                            appointmentDisplayMode: MonthAppointmentDisplayMode.indicator,
+                            showAgenda: false,
+                          ),
+                      monthCellBuilder: (BuildContext context, MonthCellDetails details) {
+                        final tieneClima = _tieneClima(details.date, weatherProvider.weatherPorFecha);
+                        return Container(
+                          margin: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: tieneClima ? const Color.fromARGB(255, 212, 240, 217) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              '${details.date.day}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: details.date.month == _focusedDay.month
+                                    ? Colors.black
+                                    : Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        );
                       },
-                      onDaySelected: (selectedDay, focusedDay) {
-                        setState(() {
-                          _selectedDay = selectedDay;
-                          _focusedDay = focusedDay;
-                          _mostrarTodas = false;
-                        });
-                      },
-                      onFormatChanged: (format) {
-                        setState(() {
-                          _calendarFormat = format;
-                        });
-                      },
-                      onPageChanged: (focusedDay) {
-                        _focusedDay = focusedDay;
-                      },
-                      calendarStyle: CalendarStyle(
-                        todayDecoration: BoxDecoration(
-                          color: const Color(0xFF649966).withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        selectedDecoration: const BoxDecoration(
-                          color: Color(0xFF649966),
-                          shape: BoxShape.circle,
-                        ),
-                        markersAlignment: Alignment.bottomCenter,
-                        markersMaxCount: 3,
+                      showNavigationArrow: true,
+                      todayHighlightColor: const Color(0xFF649966),
+                      selectionDecoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0xFF649966).withOpacity(0.4),
                       ),
-                      headerStyle: const HeaderStyle(
-                        formatButtonVisible: false,
-                        titleCentered: true,
+                      dataSource: eventDataSource,
+                      initialDisplayDate: _focusedDay,
+                      onTap: (calendarTapDetails) {
+                        if (calendarTapDetails.date != null) {
+                          setState(() {
+                            _selectedDay = calendarTapDetails.date!;
+                            _focusedDay = calendarTapDetails.date!;
+                            _mostrarTodas = false;
+                          });
+                        }
+                      },
+                      onViewChanged: (ViewChangedDetails details) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _focusedDay = details.visibleDates[details.visibleDates.length ~/ 2];
+                            });
+                          }
+                        });
+                      },
+                      headerHeight: 60,
+                      headerStyle: const CalendarHeaderStyle(
+                        backgroundColor: Colors.transparent,
+                        textAlign: TextAlign.center,
+                        textStyle: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ];
-              },
-              body: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildWeatherSection(calendarProvider, weatherProvider),
-                    _buildEventList(calendarProvider),
-                  ],
                 ),
-              ),
+                // Sección de clima siempre debajo del calendario, nunca se mueve
+                _buildWeatherSection(calendarProvider, weatherProvider),
+                // El resto scrolleable
+                Expanded(
+                  child: _buildEventList(calendarProvider),
+                ),
+              ],
             ),
     );
   }
@@ -368,4 +428,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+}
+
+class EventDataSource extends CalendarDataSource {
+  EventDataSource({
+    required Map<DateTime, List<Map<String, dynamic>>> eventos,
+    required Map<DateTime, List<Map<String, dynamic>>> climas,
+  }) {
+    final List<Appointment> lista = [];
+
+    eventos.forEach((fecha, actividades) {
+      for (var evento in actividades) {
+        lista.add(
+          Appointment(
+            startTime: fecha,
+            endTime: fecha.add(const Duration(hours: 1)),
+            subject: evento['tipo_actividad']?['tpAct_nombre'] ?? 'Actividad',
+            notes: evento.toString(),
+            color: const Color(0xFF649966),
+          ),
+        );
+      }
+    });
+    appointments = lista;
+  }
 }
