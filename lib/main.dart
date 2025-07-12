@@ -12,6 +12,7 @@ import 'package:mspaa/providers/lotes_provider.dart';
 import 'package:mspaa/routes/app_router.dart';
 import 'package:mspaa/services/api_service.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -53,6 +54,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Seguimiento y Control de Actividades Agrícolas',
+      locale: const Locale('es'),
+      supportedLocales: const [
+        Locale('es'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 56, 184, 96)),
