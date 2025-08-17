@@ -5,6 +5,19 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+class AuthNotifier extends ChangeNotifier {
+  bool _isLoggedIn;
+  AuthNotifier(this._isLoggedIn);
+
+  bool get isLoggedIn => _isLoggedIn;
+
+  void setLoggedIn(bool v) {
+    if (_isLoggedIn == v) return;
+    _isLoggedIn = v;
+    notifyListeners();
+  }
+}
+
 class ApiService {
   static const String baseUrl = "https://mspaaapi-production.up.railway.app/api"; // URL base de la API
 

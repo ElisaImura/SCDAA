@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mspaa/services/api_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,15 +39,10 @@ void _login() async {
     });
 
     if (success) {
-      Future.delayed(Duration.zero, () {
-        if (mounted) {
-          GoRouter.of(context).go('/home');
-        }
-      });
+      context.read<AuthNotifier>().setLoggedIn(true);
+      context.go('/home');
     } else {
-      setState(() {
-        _errorMessage = "Credenciales incorrectas.";
-      });
+      setState(() => _errorMessage = 'Credenciales incorrectas.');
     }
   }
 }

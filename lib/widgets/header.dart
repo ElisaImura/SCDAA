@@ -5,35 +5,38 @@ import 'package:go_router/go_router.dart';
 import 'package:mspaa/providers/users_provider.dart';
 import 'package:mspaa/services/api_service.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Header extends StatelessWidget implements PreferredSizeWidget {
   const Header({super.key});
 
-  void _logout(BuildContext context) async {
-    // Mostrar mensaje de logout
+  Future<void> _logout(BuildContext context) async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Cerrando sesión...")),
+      const SnackBar(content: Text('Cerrando sesión...')),
     );
 
-    // Llamamos a la función logout del API
-    final ApiService apiService = ApiService();
-    await apiService.logout();
+    final api = context.read<ApiService>();
 
-    // Usamos addPostFrameCallback para asegurarnos de que la redirección se ejecute después de cerrar sesión
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) {
-        final currentLocation = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath;
+    try {
+      await api.logout();
+    } catch (_) {
+      
+    }
 
-        // Asegurarse de que no estemos ya en la pantalla de login
-        if (currentLocation != '/login') {
-          GoRouter.of(context).replace('/login'); // Usar replace para evitar que el usuario pueda volver atrás
-        }
-      }
-    });
+    // limpia token local
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
 
-    // Cierra el menú lateral si está abierto
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    // 1) marca estado auth como logged out
+    context.read<AuthNotifier>().setLoggedIn(false);
+
+    // 2) cierra el overlay del menú
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(); // cierra la PageRouteBuilder del menú
+    }
+    // 3) navega a welcome (si no lo hizo ya el redirect de GoRouter)
+    if (context.mounted) {
+      context.go('/');
     }
   }
 
@@ -54,7 +57,10 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                   animation: animation,
                   builder: (context, child) {
                     return Transform.translate(
-                      offset: Offset(MediaQuery.of(context).size.width * (1 - animation.value), 0),
+                      offset: Offset(
+                        MediaQuery.of(context).size.width * (1 - animation.value),
+                        0,
+                      ),
                       child: child,
                     );
                   },
@@ -95,10 +101,7 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   child: Column(
                                     children: [
-                                      const CircleAvatar(
-                                        radius: 30,
-                                        child: Icon(Icons.person, size: 40),
-                                      ),
+                                      const CircleAvatar(radius: 30, child: Icon(Icons.person, size: 40)),
                                       const SizedBox(height: 10),
                                       Text(userName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                       Text(userEmail, style: const TextStyle(fontSize: 14, color: Colors.grey)),
@@ -139,16 +142,27 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, String? route, {bool logout = false}) {
+  Widget _buildMenuItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String? route, {
+    bool logout = false,
+  }) {
     return ListTile(
       leading: Icon(icon, color: logout ? Colors.red : Theme.of(context).primaryColor),
       title: Text(title),
-      onTap: () {
+      onTap: () async {
         if (logout) {
-          _logout(context);
-        } else {
-          Navigator.pop(context);
-          GoRouter.of(context).go(route!);
+          await _logout(context);
+          return;
+        }
+        // Cierra el overlay del menú antes de navegar
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (route != null && route.isNotEmpty) {
+          context.go(route); // usa push() si quieres una subpágina apilada
         }
       },
     );
@@ -156,10 +170,10 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Llama a fetchUserData para obtener los datos del usuario al abrir el Header
+    // refresca datos del usuario al montar el Header
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userProvider = Provider.of<UsersProvider>(context, listen: false);
-      userProvider.fetchUserData(); // Aseguramos que se llame cuando se construye el widget
+      final userProvider = context.read<UsersProvider>();
+      userProvider.fetchUserData();
     });
 
     return AppBar(

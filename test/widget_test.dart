@@ -5,7 +5,7 @@ import 'package:mspaa/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // ✅ Pasa `isLoggedIn` como parámetro requerido
-    await tester.pumpWidget(const MyApp(isLoggedIn: false)); // 🔹 Puedes cambiar a `true` si deseas probar autenticado
+    await tester.pumpWidget(const MyApp()); // 🔹 Puedes cambiar a `true` si deseas probar autenticado
 
     // ✅ Verifica que no haya errores en la pantalla de inicio de sesión o el home
     expect(find.text('0'), findsOneWidget);
