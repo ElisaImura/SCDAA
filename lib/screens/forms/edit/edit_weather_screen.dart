@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/weather_provider.dart';
-import 'package:mspaa/providers/lotes_provider.dart';
+import '../../../providers/weather_provider.dart';
+import '../../../providers/lotes_provider.dart';
 
 class EditWeatherScreen extends StatefulWidget {
   final Map<String, dynamic> weather;

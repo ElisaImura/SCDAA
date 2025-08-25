@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/lotes_provider.dart';
+import '../../../providers/lotes_provider.dart';
 class AddLoteScreen extends StatefulWidget {
   const AddLoteScreen({super.key});
 

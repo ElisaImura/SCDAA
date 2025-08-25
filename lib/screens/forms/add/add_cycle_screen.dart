@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mspaa/providers/cycle_provider.dart';
+import '../../../providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/activity_provider.dart';
+import '../../../providers/activity_provider.dart';
+import '../../../providers/users_provider.dart';
 
 class AddCycleScreen extends StatefulWidget {
   const AddCycleScreen({super.key});
@@ -19,17 +20,30 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
   String? _selectedTipoCultivo;
   String? _selectedVariedad;
   String? _selectedLote;
+  int? _ussId;
   bool _mostrarNuevaVariedad = false;
   bool _mostrarNuevoLote = false; // Flag para el nuevo lote
   String? cicloNombre; // Nueva variable para el nombre del ciclo
   final TextEditingController _variedadController = TextEditingController();
   final TextEditingController _loteController = TextEditingController(); // Controlador para el nuevo lote
   final TextEditingController _cicloNombreController = TextEditingController(); // Controlador para el nombre del ciclo
+  bool _isFutureDate = false; // Nueva variable
 
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
     final cycleProvider = Provider.of<CycleProvider>(context);
+    final userInfo = context.watch<UsersProvider>().userData;
+    final userId = userInfo?["uss_id"];
+    final isAdmin = userInfo?["rol"]?["rol_id"] == 1;
+
+    final userProvider = Provider.of<UsersProvider>(context, listen: false);
+
+    bool tienePermisoVariedades = userProvider.hasPermissions([10, 11, 12]);
+
+    if (!isAdmin && _ussId == null) {
+      _ussId = userId;
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text("Nuevo Ciclo")),
@@ -56,6 +70,7 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                         if (pickedDate != null) {
                           setState(() {
                             _selectedDate = pickedDate;
+                            _isFutureDate = pickedDate.isAfter(DateTime.now());
                           });
                         }
                       },
@@ -127,7 +142,8 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               child: Text(variedad["tpVar_nombre"] ?? "Sin Nombre"),
                             );
                           }),
-                        const DropdownMenuItem(value: "nuevo", child: Text("➕ Nueva Variedad")),
+                        if (isAdmin || tienePermisoVariedades)
+                          const DropdownMenuItem(value: "nuevo", child: Text("➕ Nueva Variedad")),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -168,7 +184,8 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                               child: Text(lote["lot_nombre"]),
                             );
                           }),
-                        const DropdownMenuItem(value: "nuevo", child: Text("➕ Nuevo Lote")),
+                        if (isAdmin)
+                          const DropdownMenuItem(value: "nuevo", child: Text("➕ Nuevo Lote")),
                       ],
                       onChanged: (value) async {
                         setState(() {
@@ -204,79 +221,83 @@ class _AddCycleScreenState extends State<AddCycleScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate() &&
-                              _selectedTipoCultivo != null &&
-                              (_selectedVariedad != null || _mostrarNuevaVariedad) &&
-                              _selectedLote != null) {
+                        onPressed: _isFutureDate
+                            ? null
+                            : () async {
+                                if (_formKey.currentState!.validate() &&
+                                    _selectedTipoCultivo != null &&
+                                    (_selectedVariedad != null || _mostrarNuevaVariedad) &&
+                                    _selectedLote != null) {
 
-                            // Obtener el id de nuevo lote si se seleccionó "Nuevo Lote"
-                            int? loteId;
-                            if (_mostrarNuevoLote) {
-                              // Guardar el nuevo lote y obtener su ID
-                              loteId = await activityProvider.addLote(
-                                _loteController.text,
-                              );
-                            } else {
-                              // Verificar si el lote ya tiene un ciclo activo
-                              bool hasActiveCycle = await cycleProvider.checkActiveCycle(int.parse(_selectedLote!));
+                                  // Obtener el id de nuevo lote si se seleccionó "Nuevo Lote"
+                                  int? loteId;
+                                  if (_mostrarNuevoLote) {
+                                    // Guardar el nuevo lote y obtener su ID
+                                    loteId = await activityProvider.addLote(
+                                      _loteController.text,
+                                    );
+                                  } else {
+                                    // Verificar si el lote ya tiene un ciclo activo
+                                    bool hasActiveCycle = await cycleProvider.checkActiveCycle(int.parse(_selectedLote!));
 
-                              if (hasActiveCycle) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
-                                );
-                                return;
-                              } else {
-                                loteId = int.parse(_selectedLote!);
-                              }
-                            }
+                                    if (hasActiveCycle) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("El lote ya tiene un ciclo activo."))
+                                      );
+                                      return;
+                                    } else {
+                                      loteId = int.parse(_selectedLote!);
+                                    }
+                                  }
 
-                            // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
-                            int? variedadId;
-                            if (_mostrarNuevaVariedad) {
-                              int cultivoId = int.parse(_selectedTipoCultivo!);
-                              // Guardar la nueva variedad y obtener su ID
-                              variedadId = await activityProvider.addVariedad(
-                                _variedadController.text,
-                                cultivoId
-                              );
-                            } else {
-                              // Si no es una nueva variedad, usar la seleccionada
-                              variedadId = int.parse(_selectedVariedad!);
-                            }
+                                  // Obtener el id de la nueva variedad si se seleccionó "Nueva Variedad"
+                                  int? variedadId;
+                                  if (_mostrarNuevaVariedad) {
+                                    int cultivoId = int.parse(_selectedTipoCultivo!);
+                                    // Guardar la nueva variedad y obtener su ID
+                                    variedadId = await activityProvider.addVariedad(
+                                      _variedadController.text,
+                                      cultivoId
+                                    );
+                                  } else {
+                                    // Si no es una nueva variedad, usar la seleccionada
+                                    variedadId = int.parse(_selectedVariedad!);
+                                  }
 
-                            // Verifica que se haya obtenido un ID de variedad válido
-                            if (variedadId == null || loteId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Error al obtener el ID del lote o la variedad"))
-                              );
-                              return;
-                            }
+                                  // Verifica que se haya obtenido un ID de variedad válido
+                                  if (variedadId == null || loteId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Error al obtener el ID del lote o la variedad"))
+                                    );
+                                    return;
+                                  }
 
-                            // Datos que se enviarán al backend
-                            Map<String, dynamic> cicloData = {
-                              "tpCult_id": int.parse(_selectedTipoCultivo!),
-                              "tpVar_id": variedadId,
-                              "lot_id": loteId,
-                              "ci_fechaini": DateFormat("yyyy-MM-dd").format(_selectedDate),
-                              "uss_id": await activityProvider.getLoggedUserId(),
-                              "ci_nombre": cicloNombre ?? "", // Usamos el nombre del ciclo
-                            };
+                                  // Datos que se enviarán al backend
+                                  Map<String, dynamic> cicloData = {
+                                    "tpCult_id": int.parse(_selectedTipoCultivo!),
+                                    "tpVar_id": variedadId,
+                                    "lot_id": loteId,
+                                    "ci_fechaini": DateFormat("yyyy-MM-dd").format(_selectedDate),
+                                    "uss_id": await activityProvider.getLoggedUserId(),
+                                    "ci_nombre": cicloNombre ?? "", // Usamos el nombre del ciclo
+                                  };
 
-                            // Llamar a la función addCiclo
-                            bool success = await cycleProvider.addCiclo(cicloData);
+                                  // Llamar a la función addCiclo
+                                  bool success = await cycleProvider.addCiclo(cicloData);
 
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Ciclo guardado con éxito")));
-                              Navigator.pop(context);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Error al guardar el ciclo. Por favor, inténtelo de nuevo.")));
-                            }
-                          }
-                        },
-                        child: const Text("Guardar Ciclo"),
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Ciclo guardado con éxito")));
+                                    Navigator.pop(context);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Error al guardar el ciclo. Por favor, inténtelo de nuevo.")));
+                                  }
+                                }
+                              },
+                        child: _isFutureDate
+                            ? const Text("No se puede guardar ciclo que inicie en fecha futura")
+                            : const Text("Guardar Ciclo"),
                       ),
                     ),
                   ],

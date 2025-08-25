@@ -3,9 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/insumos_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
+import '../../../providers/insumos_provider.dart';
 
 class EditInsumoScreen extends StatefulWidget {
   final Map<String, dynamic> insumo;
@@ -57,10 +55,7 @@ class _EditInsumoScreenState extends State<EditInsumoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Editar Insumo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -115,7 +110,6 @@ class _EditInsumoScreenState extends State<EditInsumoScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

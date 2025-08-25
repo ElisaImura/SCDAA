@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:mspaa/providers/cycle_provider.dart';
-import 'package:mspaa/providers/users_provider.dart';
+import '../../../providers/cycle_provider.dart';
+import '../../../providers/users_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/activity_provider.dart';
-import 'package:mspaa/providers/weather_provider.dart';
+import '../../../providers/activity_provider.dart';
+import '../../../providers/weather_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddActivityScreen extends StatefulWidget {
@@ -41,20 +41,34 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   @override
   void initState() {
     super.initState();
-    // Verifica si existe clima para la fecha seleccionada
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-      weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate), 1); // Verificar el clima para la fecha seleccionada
-    });
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
       final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
       cycleProvider.fetchCiclosActivos();
       activityProvider.fetchUsuarios();
     });
-    
     _ussId = null;
+  }
+
+  // Helper para refrescar la disponibilidad de clima según lote y fecha
+  Future<void> _refreshWeatherAvailability() async {
+    final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
+
+    int? selectedLoteId;
+    if (_selectedCiclo != null) {
+      final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
+      final ciclo = cycleProvider.ciclosActivos.firstWhere(
+        (c) => c['ci_id'].toString() == _selectedCiclo,
+        orElse: () => <String, dynamic>{},
+      );
+      selectedLoteId = ciclo['lot_id'];
+    }
+
+    if (selectedLoteId != null) {
+      final fecha = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      await weatherProvider.checkWeatherForDate(fecha, selectedLoteId);
+      if (mounted) setState(() {});
+    }
   }
 
   void _changeActivityState(String newState) {
@@ -81,13 +95,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         if (pickedDate != null) {
           setState(() {
             _selectedDate = pickedDate;
-            // Verifica si existe clima para la fecha seleccionada
-            final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
-            weatherProvider.checkWeatherForDate(DateFormat('yyyy-MM-dd').format(_selectedDate),1);
             if (_isFutureDate()) {
               _changeActivityState('Pendiente');
             }
           });
+          // ✅ Consultar clima para (lote, nueva fecha)
+          await _refreshWeatherAvailability();
         }
       },
     );
@@ -109,6 +122,22 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
     if (!isAdmin && _ussId == null) {
       _ussId = userId;
+    }
+
+    // Obtener el lote del ciclo seleccionado
+    int? selectedLoteId;
+    if (_selectedCiclo != null) {
+      final ciclo = cycleProvider.ciclosActivos.firstWhere(
+        (c) => c['ci_id'].toString() == _selectedCiclo,
+        orElse: () => <String, dynamic>{},
+      );
+      selectedLoteId = ciclo['lot_id'];
+    }
+
+    // Verificar si hay clima para la fecha y lote seleccionados
+    bool showAddWeatherButton = false;
+    if (selectedLoteId != null) {
+      showAddWeatherButton = !weatherProvider.isWeatherAvailable;
     }
 
     return Scaffold(
@@ -180,13 +209,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     if (_selectedTipoActividad == "6") _buildCosechaFields(),
                     if (_selectedTipoActividad == "4")_buildConCantField(),
                     if (_selectedTipoActividad == "4")_buildConVigorField(),
-                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad) && _activityState != 'Pendiente') _buildInsumosSection(isAdmin, tienePermisoInsumos),
+                    // 🔴 Mostrar insumos SIEMPRE para los tipos válidos
+                    if (["1", "2", "3", "5"].contains(_selectedTipoActividad))
+                      _buildInsumosSection(isAdmin, tienePermisoInsumos, disabled: _activityState == 'Pendiente'),
                     _buildDescriptionField(),
                     const SizedBox(height: 20),
                     // Mostrar el boton de agregar clima solo si no hay clima cargado anteriormente para la fecha
-                    if (!weatherProvider.isWeatherAvailable && !weatherProvider.isLoading)
+                    if (showAddWeatherButton && !weatherProvider.isLoading)
                       _buildAddWeatherButton(),
-                      const SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _buildSaveButton(),
                   ],
                 ),
@@ -206,7 +237,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       },
       decoration: const InputDecoration(labelText: "Ciclo", border: OutlineInputBorder()),
       items: [
-        ...cycleProvider.ciclosActivos.map((ciclo) {  // Usamos ciclosActivos en lugar de ciclos
+        ...cycleProvider.ciclosActivos.map((ciclo) {
           String loteName = activityProvider.lotes.isNotEmpty
               ? activityProvider.lotes.firstWhere(
                   (lote) => lote['lot_id'] == ciclo['lot_id'],
@@ -228,6 +259,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           setState(() {
             _selectedCiclo = value;
           });
+          // ✅ Al cambiar ciclo (lote), refrescar clima para la fecha actual
+          await _refreshWeatherAvailability();
 
           // Verificar si el tipo de actividad es "Siembra"
           if (_selectedTipoActividad == "3") {
@@ -313,7 +346,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
-  Widget _buildInsumosSection(bool isAdmin, bool tienePermisoInsumos,) {
+  Widget _buildInsumosSection(bool isAdmin, bool tienePermisoInsumos, {bool disabled = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(
@@ -323,7 +356,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
           // Sección para buscar insumos existentes
           AbsorbPointer(
-            absorbing: _activityState == 'Pendiente',
+            absorbing: disabled,
             child: TypeAheadField<Map<String, dynamic>>(
               builder: (context, controller, focusNode) {
                 return TextField(
@@ -334,6 +367,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     hintText: "Buscar por nombre",
                     border: OutlineInputBorder(),
                   ),
+                  enabled: !disabled,
                 );
               },
               suggestionsCallback: (pattern) async {
@@ -384,7 +418,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           ),
 
           // Mensaje si no hay insumos preexistentes
-          if (_activityState != 'Pendiente' && Provider.of<ActivityProvider>(context).insumos.isEmpty)
+          if (!disabled && Provider.of<ActivityProvider>(context).insumos.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 10.0),
               child: Text(
@@ -396,10 +430,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           const SizedBox(height: 10),
 
           // Sección para agregar un nuevo insumo
-          if (_activityState != 'Pendiente' && (isAdmin || tienePermisoInsumos)) 
+          if ((isAdmin || tienePermisoInsumos))
             Row(
               children: [
-                // Descripción del nuevo insumo
                 Expanded(
                   child: TextFormField(
                     controller: _newInsumoController,
@@ -408,10 +441,10 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       hintText: "Nombre del insumo",
                       border: OutlineInputBorder(),
                     ),
+                    enabled: !disabled,
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Unidad de medida del nuevo insumo
                 Expanded(
                   child: TextFormField(
                     controller: _unidadController,
@@ -420,43 +453,45 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       hintText: "Unidad",
                       border: OutlineInputBorder(),
                     ),
+                    enabled: !disabled,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-
+          if ((isAdmin || tienePermisoInsumos)) const SizedBox(height: 10),
           // Botón para agregar insumo nuevo
-          if (_activityState != 'Pendiente' && (isAdmin || tienePermisoInsumos))
+          if ((isAdmin || tienePermisoInsumos))
             ElevatedButton.icon(
-              onPressed: () {
-                if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
-                  // Check if the new insumo already exists
-                  bool alreadyExists = _selectedInsumos.any((insumo) => insumo['ins_desc'] == _newInsumoController.text);
+              onPressed: disabled
+                  ? null
+                  : () {
+                      if (_newInsumoController.text.isNotEmpty && _unidadController.text.isNotEmpty) {
+                        // Check if the new insumo already exists
+                        bool alreadyExists = _selectedInsumos.any((insumo) => insumo['ins_desc'] == _newInsumoController.text);
 
-                  if (alreadyExists) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Este insumo ya fue agregado."))
-                    );
-                  } else {
-                    setState(() {
-                      _selectedInsumos.add({
-                        'ins_desc': _newInsumoController.text,
-                        'ins_id': -1, // Identificador único para nuevos insumos
-                        'ins_cant': 0.0,
-                        'ins_unidad_medida': _unidadController.text,
-                        'controller': TextEditingController(text: ''),
-                      });
-                      _newInsumoController.clear();
-                      _unidadController.clear();
-                    });
-                  }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("El nombre del insumo y la unidad de medida no pueden estar vacíos")),
-                  );
-                }
-              },
+                        if (alreadyExists) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Este insumo ya fue agregado."))
+                          );
+                        } else {
+                          setState(() {
+                            _selectedInsumos.add({
+                              'ins_desc': _newInsumoController.text,
+                              'ins_id': -1, // Identificador único para nuevos insumos
+                              'ins_cant': 0.0,
+                              'ins_unidad_medida': _unidadController.text,
+                              'controller': TextEditingController(text: ''),
+                            });
+                            _newInsumoController.clear();
+                            _unidadController.clear();
+                          });
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("El nombre del insumo y la unidad de medida no pueden estar vacíos")),
+                        );
+                      }
+                    },
               icon: const Icon(Icons.add),
               label: const Text("Agregar Insumo"),
               style: ElevatedButton.styleFrom(
@@ -465,7 +500,6 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 textStyle: const TextStyle(fontSize: 16),
               ),
             ),
-
           // Mostrar la lista de insumos agregados
           if (_selectedInsumos.isNotEmpty)
             Container(
@@ -495,7 +529,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                                 insumo['ins_cant'] = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
                               });
                             },
-                            enabled: _activityState != 'Pendiente',
+                            enabled: !disabled,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -504,7 +538,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                      onPressed: _activityState == 'Pendiente' ? null : () {
+                      onPressed: disabled ? null : () {
                         setState(() {
                           _selectedInsumos.remove(insumo);
                         });

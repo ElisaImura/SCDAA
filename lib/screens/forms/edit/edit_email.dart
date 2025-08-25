@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mspaa/providers/users_provider.dart';
+import '../../../providers/users_provider.dart';
 
 class EditEmailScreen extends StatefulWidget {
   const EditEmailScreen({super.key});

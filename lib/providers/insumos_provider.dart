@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/services/api_service.dart';
+import '../services/api_service.dart';
 
 class InsumosProvider with ChangeNotifier {
   List<Map<String, dynamic>> _insumos = [];

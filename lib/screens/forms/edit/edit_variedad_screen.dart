@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/cultivos_variedades_provider.dart';
+import '../../../providers/cultivos_variedades_provider.dart';
 
 class EditVariedadScreen extends StatefulWidget {
   final Map<String, dynamic> variedad;

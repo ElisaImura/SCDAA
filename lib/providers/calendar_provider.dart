@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:mspaa/services/api_service.dart';
+import '../services/api_service.dart';
 
 class CalendarProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();

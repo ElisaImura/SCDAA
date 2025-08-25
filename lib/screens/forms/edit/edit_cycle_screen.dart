@@ -3,9 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/cycle_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
+import '../../../providers/cycle_provider.dart';
 
 class EditCycleScreen extends StatefulWidget {
   final Map<String, dynamic> ciclo;
@@ -19,24 +17,37 @@ class EditCycleScreen extends StatefulWidget {
 class _EditCycleScreenState extends State<EditCycleScreen> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _name = widget.ciclo['ci_nombre'] ?? '';
+    _selectedDate = widget.ciclo['ci_fechaini'] != null
+        ? DateTime.tryParse(widget.ciclo['ci_fechaini'].toString())
+        : null;
+    if (_selectedDate != null && _selectedDate!.isAfter(DateTime.now())) {
+    }
+  }
+
+  void _onDateChanged(DateTime? date) {
+    setState(() {
+      _selectedDate = date;
+      if (_selectedDate != null && _selectedDate!.isAfter(DateTime.now())) {
+      } else {
+      }
+    });
   }
 
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-
-      // Solo agrega los campos que no son null
       final Map<String, dynamic> cicloData = {
         'tpVar_id': widget.ciclo['tpVar_id'],
         'ci_id': widget.ciclo['ci_id'],
         'uss_id': widget.ciclo['uss_id'],
         'lot_id': widget.ciclo['lot_id'],
-        'ci_fechaini': widget.ciclo['ci_fechaini'],
+        'ci_fechaini': _selectedDate?.toIso8601String() ?? widget.ciclo['ci_fechaini'],
         'ci_nombre': _name,
         'ci_fechafin': widget.ciclo['ci_fechafin'],
         'cos_rendi': widget.ciclo['cos_rendi'],
@@ -64,10 +75,7 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Editar Ciclo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -83,6 +91,26 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
+                    // Selector de fecha
+                    ListTile(
+                      title: Text(
+                        "Fecha de Inicio: ${_selectedDate != null ? _selectedDate!.toLocal().toString().split(' ')[0] : 'Sin fecha'}"
+                      ),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        DateTime initialDate = _selectedDate ?? DateTime.now();
+                        DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (pickedDate != null) {
+                          _onDateChanged(pickedDate);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       initialValue: _name,
                       decoration: const InputDecoration(labelText: 'Nombre del Ciclo'),
@@ -98,8 +126,12 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: _saveForm,
-                      child: const Text('Guardar Cambios'),
+                      onPressed: (_selectedDate != null && _selectedDate!.isAfter(DateTime.now()))
+                          ? null
+                          : _saveForm,
+                      child: (_selectedDate != null && _selectedDate!.isAfter(DateTime.now()))
+                          ? const Text('No se puede guardar ciclo con fecha de inicio futura')
+                          : const Text('Guardar Cambios'),
                     ),
                   ],
                 ),
@@ -108,7 +140,6 @@ class _EditCycleScreenState extends State<EditCycleScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

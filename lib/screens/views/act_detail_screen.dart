@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/activity_provider.dart';
-import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/edit/edit_activity_screen.dart';
+import '../../../providers/activity_provider.dart';
+import '../../../providers/users_provider.dart';
+import '../../../screens/forms/edit/edit_activity_screen.dart';
 import 'package:provider/provider.dart';
 
 class ActivityDetailScreen extends StatefulWidget {

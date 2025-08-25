@@ -1,12 +1,12 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/add/add_cultivo_screen.dart';
-import 'package:mspaa/screens/forms/edit/edit_cultivo_screen.dart';
+import '../../../providers/users_provider.dart';
+import '../../../screens/forms/add/add_cultivo_screen.dart';
+import '../../../screens/forms/edit/edit_cultivo_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/cultivos_variedades_provider.dart';
-import 'package:mspaa/screens/views/variedades_view.dart';
+import '../../../providers/cultivos_variedades_provider.dart';
+import '../../../screens/views/variedades_view.dart';
 
 class CultivosView extends StatefulWidget {
   const CultivosView({super.key});
@@ -69,7 +69,7 @@ class _CultivosViewState extends State<CultivosView> {
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             child: Center(
               child: Text(
-                'Tipos de Cultivos',
+                'Lista de Tipos de Cultivos',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,

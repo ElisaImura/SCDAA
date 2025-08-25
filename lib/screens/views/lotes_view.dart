@@ -1,11 +1,11 @@
 // ignore_for_file: avoid_print, library_private_types_in_public_api, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/edit/edit_lote_screen.dart';
+import '../../../providers/users_provider.dart';
+import '../../../screens/forms/edit/edit_lote_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/lotes_provider.dart';
-import 'package:mspaa/screens/forms/add/add_lote_screen.dart';
+import '../../../providers/lotes_provider.dart';
+import '../../../screens/forms/add/add_lote_screen.dart';
 
 class LotesView extends StatefulWidget {
   const LotesView({super.key});

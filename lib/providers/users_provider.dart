@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/foundation.dart';
-import 'package:mspaa/services/api_service.dart';
+import '../services/api_service.dart';
 
 class UsersProvider with ChangeNotifier {
   Map<String, dynamic> _userData = {};

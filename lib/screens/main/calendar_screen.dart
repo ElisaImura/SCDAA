@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import 'package:mspaa/providers/weather_provider.dart';
-import 'package:mspaa/screens/forms/edit/edit_weather_screen.dart';
+import '../../../providers/weather_provider.dart';
+import '../../../screens/forms/edit/edit_weather_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/calendar_provider.dart';
-import 'package:mspaa/screens/views/act_detail_screen.dart';
+import '../../../providers/calendar_provider.dart';
+import '../../../screens/views/act_detail_screen.dart';
 import 'package:weather_icons/weather_icons.dart';
 
 class CalendarScreen extends StatefulWidget {

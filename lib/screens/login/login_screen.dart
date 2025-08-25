@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mspaa/services/api_service.dart';
+import '../../../services/api_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -13,39 +13,60 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final ApiService _apiService = ApiService();
-  
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _passwordFocusNode = FocusNode();
+
   bool _isLoading = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
 
-void _login() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+  @override
+  void initState() {
+    super.initState();
+
+    // Rebuild widget whenever password field gains/loses focus
+    _passwordFocusNode.addListener(() {
+      setState(() {});
     });
+  }
 
-    bool success = await _apiService.login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
 
-    if (!mounted) return;
+  void _login() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
 
-    setState(() {
-      _isLoading = false;
-    });
+      bool success = await _apiService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
 
-    if (success) {
-      context.read<AuthNotifier>().setLoggedIn(true);
-      context.go('/home');
-    } else {
-      setState(() => _errorMessage = 'Credenciales incorrectas.');
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (success) {
+        context.read<AuthNotifier>().setLoggedIn(true);
+        context.go('/home');
+      } else {
+        setState(() => _errorMessage = 'Credenciales incorrectas.');
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -83,12 +104,28 @@ void _login() async {
                 const SizedBox(height: 15),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
+                  focusNode: _passwordFocusNode,
+                  decoration: InputDecoration(
                     labelText: "Contraseña",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: _passwordFocusNode.hasFocus
+                        ? IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          )
+                        : null,
                   ),
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Ingresa tu contraseña";

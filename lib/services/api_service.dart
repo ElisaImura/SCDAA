@@ -19,7 +19,10 @@ class AuthNotifier extends ChangeNotifier {
 }
 
 class ApiService {
-  static const String baseUrl = "https://mspaaapi-production.up.railway.app/api"; // URL base de la API
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_API_URL',
+    defaultValue: "http://10.0.2.2:8000/api", // valor por defecto
+  );
 
   /// 🔹 Obtener el token almacenado
   Future<String?> _getToken() async {

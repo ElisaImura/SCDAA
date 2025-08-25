@@ -1,25 +1,25 @@
 import 'package:go_router/go_router.dart';
-import 'package:mspaa/screens/forms/add/add_activity_screen.dart';
-import 'package:mspaa/screens/login/forgot_password_screen.dart';
-import 'package:mspaa/screens/login/password_reset_screen.dart';
-import 'package:mspaa/screens/main/calendar_screen.dart';
-import 'package:mspaa/screens/main/config_screen.dart';
-import 'package:mspaa/screens/forms/add/add_cycle_screen.dart';
-import 'package:mspaa/screens/forms/add/add_weather_screen.dart';
-import 'package:mspaa/screens/main/home_screen.dart';
-import 'package:mspaa/screens/login/login_screen.dart';
-import 'package:mspaa/screens/main/reports_screen.dart';
-import 'package:mspaa/screens/views/ciclos_view.dart';
-import 'package:mspaa/screens/views/cultivos_view.dart';
-import 'package:mspaa/screens/views/insumos_view.dart';
-import 'package:mspaa/screens/views/lotes_view.dart';
-import 'package:mspaa/screens/views/permisos_view.dart';
-import 'package:mspaa/screens/views/users_view.dart';
-import 'package:mspaa/screens/login/welcome_screen.dart';
-import 'package:mspaa/services/api_service.dart';
-import 'package:mspaa/widgets/main_layout.dart';
-import 'package:mspaa/screens/forms/edit/edit_user_screen.dart';
-import 'package:mspaa/screens/views/activities_view.dart';
+import '../../../screens/forms/add/add_activity_screen.dart';
+import '../../../screens/login/forgot_password_screen.dart';
+import '../../../screens/login/password_reset_screen.dart';
+import '../../../screens/main/calendar_screen.dart';
+import '../../../screens/main/config_screen.dart';
+import '../../../screens/forms/add/add_cycle_screen.dart';
+import '../../../screens/forms/add/add_weather_screen.dart';
+import '../../../screens/main/home_screen.dart';
+import '../../../screens/login/login_screen.dart';
+import '../../../screens/main/reports_screen.dart';
+import '../../../screens/views/ciclos_view.dart';
+import '../../../screens/views/cultivos_view.dart';
+import '../../../screens/views/insumos_view.dart';
+import '../../../screens/views/lotes_view.dart';
+import '../../../screens/views/permisos_view.dart';
+import '../../../screens/views/users_view.dart';
+import '../../../screens/login/welcome_screen.dart';
+import '../../../services/api_service.dart';
+import '../../../widgets/main_layout.dart';
+import '../../../screens/forms/edit/edit_user_screen.dart';
+import '../../../screens/views/activities_view.dart';
 
 class AppRouter {
   static GoRouter getRouter(AuthNotifier auth) {

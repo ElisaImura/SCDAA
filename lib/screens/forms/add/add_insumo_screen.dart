@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/insumos_provider.dart';
+import '../../../providers/insumos_provider.dart';
 
 class AddInsumoScreen extends StatefulWidget {
   const AddInsumoScreen({super.key});

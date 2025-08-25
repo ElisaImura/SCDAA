@@ -1,11 +1,11 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, avoid_print, deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/users_provider.dart';
+import '../../../providers/users_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/cultivos_variedades_provider.dart';
-import 'package:mspaa/screens/forms/add/add_variedad_screen.dart';
-import 'package:mspaa/screens/forms/edit/edit_variedad_screen.dart';
+import '../../../providers/cultivos_variedades_provider.dart';
+import '../../../screens/forms/add/add_variedad_screen.dart';
+import '../../../screens/forms/edit/edit_variedad_screen.dart';
 
 class VariedadesView extends StatefulWidget {
   final Map<String, dynamic> cultivo;
@@ -160,7 +160,7 @@ class _VariedadesViewState extends State<VariedadesView> {
                                   nombre,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
-                                trailing: (userProvider.hasPermissions([10, 11, 12])) ?
+                                trailing: (isAdmin || userProvider.hasPermissions([10, 11, 12])) ?
                                   Wrap(
                                     spacing: 12,
                                     children: [

@@ -3,11 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:mspaa/screens/forms/add/add_lote_screen.dart';
+import '../../../screens/forms/add/add_lote_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/weather_provider.dart';
-import 'package:mspaa/providers/lotes_provider.dart'; // Asegúrate de importar el provider correcto
-import 'package:mspaa/providers/users_provider.dart';
+import '../../../providers/weather_provider.dart';
+import '../../../providers/lotes_provider.dart'; // Asegúrate de importar el provider correcto
+import '../../../providers/users_provider.dart';
 
 class AddWeatherScreen extends StatefulWidget {
   final bool isFromFooter;
@@ -24,8 +24,10 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
   final TextEditingController _humedadController = TextEditingController();
   final TextEditingController _lluviaController = TextEditingController();
 
+  
   DateTime _selectedDate = DateTime.now();
   int? _selectedLoteId;
+  bool _isFutureDate = false; // Nueva variable para controlar si la fecha es futura
 
   @override
   void initState() {
@@ -90,6 +92,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         if (pickedDate != null) {
           setState(() {
             _selectedDate = pickedDate;
+            _isFutureDate = pickedDate.isAfter(DateTime.now());
           });
 
           if (_selectedLoteId != null) {
@@ -217,7 +220,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: weatherProvider.isWeatherAvailable
+        onPressed: (weatherProvider.isWeatherAvailable || _isFutureDate)
             ? null
             : () async {
                 if (_selectedLoteId == null) {
@@ -257,7 +260,9 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
               },
         child: weatherProvider.isWeatherAvailable
             ? const Text("Clima ya registrado para esta fecha y lote")
-            : const Text("Guardar Datos"),
+            : _isFutureDate
+                ? const Text("No se puede agregar clima a una fecha futura")
+                : const Text("Guardar Datos"),
       ),
     );
   }

@@ -2,9 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
+import '../../../providers/users_provider.dart';
 
 class EditUserView extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -78,11 +76,9 @@ class _EditUserViewState extends State<EditUserView> {
 
   @override
   Widget build(BuildContext context) {
+    bool isSupperAdmin = widget.user['uss_id'] == 1;
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Altura personalizada del header
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Editar Usuario")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -93,7 +89,6 @@ class _EditUserViewState extends State<EditUserView> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            // Formulario
             Expanded(
               child: Form(
                 key: _formKey,
@@ -131,15 +126,17 @@ class _EditUserViewState extends State<EditUserView> {
                     const SizedBox(height: 16),
                     // Dropdown para el rol
                     _roles.isEmpty
-                        ? const Center(child: CircularProgressIndicator()) // Mostrar cargando si no se han cargado los roles
+                        ? const Center(child: CircularProgressIndicator())
                         : DropdownButtonFormField<int>(
                             value: _role,
                             decoration: const InputDecoration(labelText: 'Rol'),
-                            onChanged: (value) {
-                              setState(() {
-                                _role = value!;
-                              });
-                            },
+                            onChanged: isSupperAdmin
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _role = value!;
+                                    });
+                                  },
                             items: _roles.map((role) {
                               return DropdownMenuItem<int>(
                                 value: role['rol_id'],
@@ -166,7 +163,6 @@ class _EditUserViewState extends State<EditUserView> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

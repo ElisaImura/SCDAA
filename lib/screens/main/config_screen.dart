@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
-import 'package:mspaa/providers/users_provider.dart';
-import 'package:mspaa/screens/forms/edit/edit_username.dart';
-import 'package:mspaa/screens/forms/edit/edit_email.dart';
-import 'package:mspaa/screens/forms/edit/edit_password.dart';
+import '../../../providers/users_provider.dart';
+import '../../../screens/forms/edit/edit_username.dart';
+import '../../../screens/forms/edit/edit_email.dart';
+import '../../../screens/forms/edit/edit_password.dart';
+import '../../../screens/views/permisos_view.dart';
 
 class ConfigScreen extends StatelessWidget {
   const ConfigScreen({super.key});
@@ -54,7 +54,14 @@ class ConfigScreen extends StatelessWidget {
           if (userRoleId == 1) ...[
             _buildSectionTitle('Seguridad y Auditoría'),
             _buildListTile(Icons.history, 'Reportes de Auditoría', () {}, isDisabled: true),
-            _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {context.push('/permisos');}),
+            _buildListTile(Icons.admin_panel_settings, 'Permisos de Usuarios', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PermisosView(),
+                ),
+              );
+            }),
           ],
         ],
       ),

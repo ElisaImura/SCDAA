@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mspaa/providers/cycle_provider.dart';
+import '../../../providers/cycle_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/activity_provider.dart';
+import '../../../providers/activity_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

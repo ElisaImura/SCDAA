@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/activity_provider.dart';
-import 'package:mspaa/screens/views/act_detail_screen.dart';
+import '../../../providers/activity_provider.dart';
+import '../../../screens/views/act_detail_screen.dart';
 
 class ActivitiesView extends StatefulWidget {
   @override

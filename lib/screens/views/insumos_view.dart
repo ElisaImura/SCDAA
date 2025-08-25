@@ -1,11 +1,11 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/users_provider.dart';
+import '../../../providers/users_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/providers/insumos_provider.dart';
-import 'package:mspaa/screens/forms/add/add_insumo_screen.dart';
-import 'package:mspaa/screens/forms/edit/edit_insumo_screen.dart';
+import '../../../providers/insumos_provider.dart';
+import '../../../screens/forms/add/add_insumo_screen.dart';
+import '../../../screens/forms/edit/edit_insumo_screen.dart';
 
 class InsumosView extends StatefulWidget {
   const InsumosView({super.key});

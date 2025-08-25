@@ -1,9 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/lotes_provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
+import '../../../providers/lotes_provider.dart';
 import 'package:provider/provider.dart';
 
 class EditLoteScreen extends StatefulWidget {
@@ -55,10 +53,7 @@ class _EditLoteScreenState extends State<EditLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Altura personalizada del header
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Editar Lote")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -102,7 +97,6 @@ class _EditLoteScreenState extends State<EditLoteScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

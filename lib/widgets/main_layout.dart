@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mspaa/widgets/header.dart';
-import 'package:mspaa/widgets/footer.dart';
+import '../../../widgets/header.dart';
+import '../../../widgets/footer.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child; // Widget que cambiará

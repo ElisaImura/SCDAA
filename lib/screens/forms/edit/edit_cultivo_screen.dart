@@ -2,9 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mspaa/widgets/footer.dart';
-import 'package:mspaa/widgets/header.dart';
-import 'package:mspaa/providers/cultivos_variedades_provider.dart';
+import '../../../providers/cultivos_variedades_provider.dart';
 
 class EditCultivoScreen extends StatefulWidget {
   final Map<String, dynamic> cultivo;
@@ -52,10 +50,7 @@ class _EditCultivoScreenState extends State<EditCultivoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const PreferredSize(
-        preferredSize: Size.fromHeight(70.0),
-        child: Header(),
-      ),
+      appBar: AppBar(title: Text("Editar Tipo de Cultivo")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -96,7 +91,6 @@ class _EditCultivoScreenState extends State<EditCultivoScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

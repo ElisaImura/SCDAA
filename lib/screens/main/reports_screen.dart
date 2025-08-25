@@ -2,7 +2,7 @@
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:mspaa/providers/reportes_provider.dart';
+import '../../../providers/reportes_provider.dart';
 import 'package:provider/provider.dart';
 
 class ReportsScreen extends StatefulWidget {

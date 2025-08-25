@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:mspaa/services/api_service.dart'; // Importa el servicio de API
+import '../services/api_service.dart'; // Importa el servicio de API
 
 class LotesProvider with ChangeNotifier {
   List<dynamic> _lotes = [];
