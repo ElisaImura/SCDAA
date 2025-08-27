@@ -2,12 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import '../../../providers/weather_provider.dart';
 import '../../../screens/forms/edit/edit_weather_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/calendar_provider.dart';
 import '../../../screens/views/act_detail_screen.dart';
 import 'package:weather_icons/weather_icons.dart';
+
+// Helper para normalizar fechas a local (sin hora)
+DateTime normalizeLocal(DateTime d) => DateTime(d.year, d.month, d.day);
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -27,8 +29,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _focusedDay = DateTime.now();
-    _selectedDay = DateTime.utc(_focusedDay.year, _focusedDay.month, _focusedDay.day);
+    _focusedDay = DateTime.now().toLocal();
+    _selectedDay = normalizeLocal(_focusedDay); // ✅ local
   }
 
   @override
@@ -47,44 +49,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _fetchData() async {
     final calendarProvider = Provider.of<CalendarProvider>(context, listen: false);
-    final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
     await calendarProvider.fetchData();
-    await weatherProvider.fetchWeatherData();
 
     if (mounted) {
-      setState(() {
-        _selectedDay = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-      });
+      setState(() {});
     }
   }
 
   void _navigateToActivityDetail(Map<String, dynamic> actividad) async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ActivityDetailScreen(actividad: actividad),
       ),
     );
-
-    if (result == true) {
-      if (mounted) {
-        _fetchData();
-      }
-    }
+    if (!mounted) return;
+    _fetchData(); // 👈 siempre refresca al volver
   }
 
   bool _tieneClima(DateTime date, Map<DateTime, List<Map<String, dynamic>>> climas) {
-    final fechaNormalizada = DateTime.utc(date.year, date.month, date.day);
-    return climas.containsKey(fechaNormalizada);
+    final fechaNormalizada = normalizeLocal(date);
+    return climas.containsKey(fechaNormalizada) && climas[fechaNormalizada]!.isNotEmpty;
   }
 
   @override
   Widget build(BuildContext context) {
     final calendarProvider = Provider.of<CalendarProvider>(context);
-    final weatherProvider = Provider.of<WeatherProvider>(context);
     final eventDataSource = EventDataSource(
       eventos: calendarProvider.events,
-      climas: weatherProvider.weatherPorFecha,
+      climas: calendarProvider.weather,
     );
 
     // --- Solo cambia la cantidad de semanas visibles, no la altura ---
@@ -131,7 +124,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             showAgenda: false,
                           ),
                       monthCellBuilder: (BuildContext context, MonthCellDetails details) {
-                        final tieneClima = _tieneClima(details.date, weatherProvider.weatherPorFecha);
+                        final tieneClima = _tieneClima(details.date, calendarProvider.weather);
                         return Container(
                           margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
@@ -162,11 +155,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       dataSource: eventDataSource,
                       initialDisplayDate: _focusedDay,
+                      initialSelectedDate: _focusedDay, // 👈 Selecciona el día actual al abrir
                       onTap: (calendarTapDetails) {
                         if (calendarTapDetails.date != null) {
                           setState(() {
-                            _selectedDay = calendarTapDetails.date!;
-                            _focusedDay = calendarTapDetails.date!;
+                            _selectedDay = normalizeLocal(calendarTapDetails.date!); // ✅ local
+                            _focusedDay  = normalizeLocal(calendarTapDetails.date!); // (solo para color/mes)
                             _mostrarTodas = false;
                           });
                         }
@@ -175,7 +169,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) {
                             setState(() {
-                              _focusedDay = details.visibleDates[details.visibleDates.length ~/ 2];
+                              _focusedDay = normalizeLocal(details.visibleDates[details.visibleDates.length ~/ 2]);
                             });
                           }
                         });
@@ -193,7 +187,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 ),
                 // Sección de clima siempre debajo del calendario, nunca se mueve
-                _buildWeatherSection(calendarProvider, weatherProvider),
+                _buildWeatherSection(calendarProvider),
                 // El resto scrolleable
                 Expanded(
                   child: _buildEventList(calendarProvider),
@@ -203,12 +197,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildWeatherSection(CalendarProvider calendarProvider, WeatherProvider weatherProvider) {
+  Widget _buildWeatherSection(CalendarProvider calendarProvider) {
     if (_selectedDay == null) return const SizedBox();
-
-    DateTime fechaNormalizada = DateTime.utc(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
-    final climas = weatherProvider.weatherPorFecha[fechaNormalizada] ?? [];
-
+    final fechaNormalizada = normalizeLocal(_selectedDay!);
+    final climas = calendarProvider.weather[fechaNormalizada] ?? [];
     if (climas.isEmpty) return const SizedBox();
 
     final PageController controller = PageController();
@@ -222,6 +214,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               height: 110,
               width: double.infinity,
               child: PageView.builder(
+                key: ValueKey('${fechaNormalizada.toIso8601String()}-${climas.length}'), // 👈 fuerza refresh
                 controller: controller,
                 itemCount: climas.length,
                 onPageChanged: (index) {
@@ -234,7 +227,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   final loteNombre = clima['lote']?['lot_nombre'] ?? 'Lote desconocido';
 
                   return GestureDetector(
-                    onTap: () => _mostrarDialogoClima(context, fechaNormalizada, clima),
+                    onTap: () => _mostrarDialogoClima(context, fechaNormalizada, clima, calendarProvider),
                     child: Container(
                       width: double.infinity,
                       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -300,8 +293,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    DateTime fechaNormalizada = DateTime.utc(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
-    final eventos = calendarProvider.events[fechaNormalizada] ?? [];
+  DateTime fechaNormalizada = normalizeLocal(_selectedDay!);           // ✅ local
+  final eventos = calendarProvider.events[fechaNormalizada] ?? [];
 
     if (eventos.isEmpty) {
       return const Padding(
@@ -345,10 +338,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _mostrarDialogoClima(BuildContext context, DateTime fecha, Map<String, dynamic> clima) {
+  void _mostrarDialogoClima(
+    BuildContext outerCtx,
+    DateTime fecha,
+    Map<String, dynamic> clima,
+    CalendarProvider calendarProvider,
+  ) {
+    // 👇 capta refs del árbol estable (this.context del State)
+    final calendar = context.read<CalendarProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
+      context: outerCtx,
+      builder: (dialogCtx) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
@@ -382,13 +384,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   minimumSize: const Size(double.infinity, 45),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(
+                onPressed: () async {
+                  Navigator.of(dialogCtx).pop();
+                  final result = await Navigator.of(outerCtx).push(
                     MaterialPageRoute(
                       builder: (_) => EditWeatherScreen(weather: clima),
                     ),
                   );
+
+                  if (!mounted) return;
+
+                  if (result == true || (result is Map && result['changed'] == true)) {
+                    await calendar.fetchData(); // ✅ usa ref capturada
+                    if (!mounted) return;
+                    if (result is Map && result['cl_fecha'] != null) {
+                      final nuevaSel = normalizeLocal(DateTime.parse(result['cl_fecha']).toLocal());
+                      setState(() {
+                        _selectedDay = nuevaSel;
+                        _focusedDay  = nuevaSel;
+                        _calendarController.displayDate = nuevaSel;
+                      });
+                    } else {
+                      setState(() {}); // fuerza repaint si la fecha no cambió
+                    }
+                    final msg = (result is Map ? (result['message'] as String?) : null)
+                        ?? 'Clima actualizado';
+                    messenger.showSnackBar(SnackBar(content: Text(msg)));
+                  }
                 },
               ),
               const SizedBox(height: 10),
@@ -401,24 +423,56 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
-                  final provider = Provider.of<WeatherProvider>(context, listen: false);
-                  final eliminado = await provider.deleteWeather(clima['cl_id']);
-                  Navigator.of(context).pop();
-                  if (eliminado) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Datos del clima eliminados')),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Error al eliminar clima')),
-                    );
+                  final confirm = await showDialog<bool>(
+                    context: dialogCtx,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('¿Eliminar clima?'),
+                      content: const Text(
+                        '¿Estás seguro de que deseas eliminar este registro de clima? '
+                        'Esta acción no se puede deshacer.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          child: const Text('Eliminar'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm != true) return;
+
+                  Navigator.of(dialogCtx).pop(); // cierra el diálogo principal
+
+                  final ok = await calendar.deleteWeather(clima['cl_id']); // ✅ usa ref capturada
+                  if (!mounted) return;
+
+                  if (ok) {
+                    await calendar.fetchData(); // ✅ usa ref capturada
+                    if (!mounted) return;
+                    final sel = normalizeLocal(fecha);
+                    setState(() {
+                      _selectedDay = sel;
+                      _focusedDay  = sel;
+                      _calendarController.displayDate = sel;
+                    });
                   }
-                  _fetchData();
+
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(ok ? 'Datos del clima eliminados' : 'Error al eliminar clima'),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(dialogCtx).pop(),
                 child: const Text('Cancelar'),
               ),
             ],

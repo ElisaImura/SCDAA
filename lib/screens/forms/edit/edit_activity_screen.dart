@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/activity_provider.dart';
 import '../../../providers/cycle_provider.dart';
@@ -29,7 +28,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   final TextEditingController _conCantController = TextEditingController();
   final TextEditingController _unidadController = TextEditingController();
 
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now().toLocal();
   String? _selectedCiclo;
   String? _selectedTipoActividad;
   int? _ussId;
@@ -45,7 +44,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     _descripcionController.text = widget.activityData['act_desc'] ?? '';
     _selectedCiclo = widget.activityData['ciclo']['ci_id'].toString();
     _selectedTipoActividad = widget.activityData['tpAct_id'].toString();
-    _selectedDate = DateTime.parse(widget.activityData['act_fecha']);
+    _selectedDate = DateTime.parse(widget.activityData['act_fecha']).toLocal(); // <-- usa toLocal()
     
     if (widget.activityData['ciclo']['act_ciclos'] is List &&
         widget.activityData['ciclo']['act_ciclos'].isNotEmpty) {
@@ -109,7 +108,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         actions: [
           GestureDetector(
             onTap: () async {
-              if (_selectedDate.isAfter(DateTime.now())) {
+              if (_selectedDate.isAfter(DateTime.now().toLocal())) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("No se puede cambiar el estado si la fecha es futura"))
                 );
@@ -184,24 +183,16 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   }
 
   Widget _buildSaveButton() {
-    void onSaveSuccess(BuildContext context) {
-      // Recargar las actividades y tareas después de guardar la actividad
+    void onSaveSuccess(BuildContext context) async {
       final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-      if (mounted) {
-        activityProvider.fetchActividadesRecientes();
-        activityProvider.fetchTareas(); 
-      }
-
-      // Mostrar un mensaje de éxito
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Actividad actualizada con éxito")));
-
-      // Navegar a la pantalla de inicio después de un pequeño retraso
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) { // Verificar si el widget sigue montado
-          Navigator.pop(context, true);  // Volver a la pantalla de detalles enviando `true`
-          GoRouter.of(context).go('/home'); // Redirigir al home
-        }
-      });
+      await activityProvider.fetchActividadesRecientes();
+      await activityProvider.fetchTareas();
+      final updated = await activityProvider.fetchActivityById(widget.activityData['act_id']);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Actividad actualizada con éxito")),
+      );
+      Navigator.pop(context, updated ?? true); // <-- devuelve el objeto actualizado
     }
 
     return SizedBox(
@@ -306,20 +297,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
             // 3. Llamar a la función asincrónica de actualización fuera de setState
             bool success = await Provider.of<ActivityProvider>(context, listen: false).updateActivity(activityData);
 
-            // Verificar si el widget sigue montado antes de llamar a setState
-            if (mounted) {
-              setState(() {
-                // Aquí solo actualizas el estado, no haces trabajo asíncrono.
-              });
-
-              // Llamar a la función de éxito si todo salió bien
-              if (success) {
-                onSaveSuccess(context); // Llamar a la función de éxito
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error al actualizar la actividad"))
-                );
-              }
+            // ✅ Solo navega si el widget sigue montado
+            if (success && mounted) {
+              onSaveSuccess(context);
+            } else if (!success && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Error al actualizar la actividad"))
+              );
             }
           }
         },
@@ -336,8 +320,8 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         DateTime? pickedDate = await showDatePicker(
           context: context,
           initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
+          firstDate: DateTime(2020).toLocal(),
+          lastDate: DateTime(2030).toLocal(),
         );
         if (pickedDate != null) {
           if (mounted) { // Verificar si el widget aún está montado
@@ -407,6 +391,20 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   }
 
   Widget _buildInsumosSection() {
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+
+    // ⚡️ Asegúrate de cargar insumos al construir el widget si aún no están cargados
+    if (activityProvider.insumos.isEmpty) {
+      Future.microtask(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final String? token = prefs.getString("auth_token");
+        if (token != null) {
+          await activityProvider.fetchInsumos(token);
+          if (mounted) setState(() {});
+        }
+      });
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Column(

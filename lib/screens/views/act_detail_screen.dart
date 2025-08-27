@@ -21,6 +21,7 @@ class ActivityDetailScreen extends StatefulWidget {
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   late Map<String, dynamic> actividadActual;
   String responsable = "Cargando...";
+  bool _changed = false; // 👈 para marcar si hubo cambios
 
   @override
   void initState() {
@@ -54,12 +55,34 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       ),
     );
 
-    if (result == true) {
-      _fetchUpdatedActivity();
-    }
+    if (!mounted) return;
 
-    if (mounted) {
-      Navigator.pop(context, true); 
+    if (result is Map<String, dynamic>) {
+      setState(() => actividadActual = result);
+      _changed = true;           // 👈 hubo cambios
+      _setResponsableNombre();
+    } else if (result == true) {
+      _fetchUpdatedActivity();
+      _changed = true;           // 👈 hubo cambios
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    Navigator.pop(context, _changed ? true : null); // 👈 devuelve si hubo cambios
+    return false; // ya manejamos el pop
+  }
+
+  void _fetchUpdatedActivity() async {
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    final updatedActivity = await activityProvider.fetchActivityById(actividadActual['act_id']);
+
+    if (!mounted) return;
+
+    if (updatedActivity != null) {
+      setState(() {
+        actividadActual = updatedActivity;
+      });
+      _setResponsableNombre(); // refresca responsable
     }
   }
   
@@ -71,6 +94,52 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     final responsableId = actividadActual['ciclo']?['uss_id'];
     final puedeEditarEliminar = isAdmin || userId == responsableId;
 
+    // Fallbacks para mostrar datos correctamente
+    final tipoActividadId = actividadActual['tpAct_id']
+      ?? actividadActual['tipo_actividad']?['tpAct_id']
+      ?? 0;
+
+    final insumos = (actividadActual['insumos'] as List?)
+      ?? (actividadActual['ciclo']?['insumos'] as List?)
+      ?? [];
+
+    final densidadSemilla = tipoActividadId == 3
+      ? (actividadActual['sie_densidad']
+          ?? actividadActual['ciclo']?['datos_ciclo']?['sie_densidad'])
+      : null;
+
+    final cantidadPlantas = tipoActividadId == 4
+      ? (actividadActual['con_cant']
+          ?? actividadActual['control_germinacion']?['con_cant'])
+      : null;
+
+    final vigor = tipoActividadId == 4
+      ? (actividadActual['con_vigor']
+          ?? actividadActual['control_germinacion']?['con_vigor'])
+      : null;
+
+    final rendimiento = tipoActividadId == 6
+      ? (actividadActual['cos_rendi']
+          ?? actividadActual['ciclo']?['datos_ciclo']?['cos_rendi'])
+      : null;
+
+    final humedad = tipoActividadId == 6
+      ? (actividadActual['cos_hume']
+          ?? actividadActual['ciclo']?['datos_ciclo']?['cos_hume'])
+      : null;
+
+    final cicloNombre = actividadActual['ciclo']?['datos_ciclo']?['ci_nombre']
+      ?? actividadActual['ciclo']?['ci_nombre']
+      ?? 'Sin nombre';
+
+    final ciclo = (actividadActual['ciclo']?['ci_id'] != null)
+      ? "Ciclo: $cicloNombre"
+      : "Sin ciclo";
+
+    final lote = actividadActual['lote']?['lot_nombre']
+      ?? actividadActual['ciclo']?['lote']?['lot_nombre']
+      ?? 'Desconocido';
+
     String titulo = actividadActual['tipo_actividad']?['tpAct_nombre'] ?? "Sin título";
     String fecha = actividadActual['act_fecha'] ?? "Fecha desconocida";
     String estado = (actividadActual['act_estado'] == 1)
@@ -79,188 +148,151 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ? "En curso"
             : "Finalizado";
     String descripcion = actividadActual['act_desc'] ?? "No hay detalles disponibles.";
-    String ciclo = (actividadActual['ciclo'] != null && actividadActual['ciclo']['ci_id'] != null)
-        ? "Ciclo: ${actividadActual['ciclo']['datos_ciclo']?['ci_nombre'] ?? 'Sin nombre'}"
-        : "Sin ciclo";
-    String lote = (actividadActual['ciclo'] != null && actividadActual['ciclo']['lote'] != null)
-        ? actividadActual['ciclo']['lote']['lot_nombre'] ?? "Desconocido"
-        : "Desconocido";
     
-    List<dynamic> insumos = actividadActual['ciclo']?['insumos'] ?? [];
-    int tipoActividadId = actividadActual['tpAct_id'] ?? 0;
-    double? densidadSemilla = tipoActividadId == 3 
-        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['sie_densidad'] != null
-            ? actividadActual['ciclo']['datos_ciclo']['sie_densidad']?.toDouble() 
-            : null 
-        : null;
-    int? cantidadPlantas = tipoActividadId == 4 
-        ? actividadActual['control_germinacion'] != null && actividadActual['control_germinacion']['con_cant'] != null
-            ? actividadActual['control_germinacion']['con_cant']
-            : null 
-        : null;
-    int? vigor = tipoActividadId == 4 
-        ? actividadActual['control_germinacion'] != null && actividadActual['control_germinacion']['con_vigor'] != null
-            ? actividadActual['control_germinacion']['con_vigor']
-            : null 
-        : null;
-    double? rendimiento = tipoActividadId == 6 
-        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['cos_rendi'] != null
-            ? actividadActual['ciclo']['datos_ciclo']['cos_rendi']?.toDouble() 
-            : null 
-        : null;
-    double? humedad = tipoActividadId == 6 
-        ? actividadActual['ciclo'] != null && actividadActual['ciclo']['datos_ciclo'] != null && actividadActual['ciclo']['datos_ciclo']['cos_hume'] != null
-            ? actividadActual['ciclo']['datos_ciclo']['cos_hume']?.toDouble() 
-            : null 
-        : null;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Detalles de la Actividad"),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              titulo,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(fecha, style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text("Estado: $estado", style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.repeat, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(ciclo, style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.map, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text("Lote: $lote", style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.person, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text("Responsable: $responsable", style: const TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Descripción:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              descripcion,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            if ([1, 2, 3, 5].contains(tipoActividadId)) ...[ 
-              const Text(
-                "Insumos:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Detalles de la Actividad"),
+          leading: BackButton(
+            onPressed: () {
+              _onWillPop();
+            },
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titulo,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
-              insumos.isNotEmpty
-                  ? Column(
-                      children: insumos.toSet().toList().map((insumo) {
-                        return ListTile(
-                          leading: const Icon(Icons.inventory, color: Colors.blue),
-                          title: Text(insumo['ins_desc']),
-                          subtitle: Text(
-                            "Cantidad: ${insumo['ins_cant']} L",
-                          ),
-                        );
-                      }).toList(),
-                    )
-                  : const Text("No hay insumos registrados."),
-              const SizedBox(height: 20),
-            ],
-            if (tipoActividadId == 3) ...[ 
-              const Text(
-                "Densidad de Semilla:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text("Densidad de Semilla: ${densidadSemilla ?? 'No disponible'} kg/ha"),
-              const SizedBox(height: 20),
-            ],
-            if (tipoActividadId == 4) ...[ 
-              const Text(
-                "Control de Germinación:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text("Cantidad de plantas por ha: ${cantidadPlantas ?? 'No disponible'}"),
-              Text("Vigor: ${vigor ?? 'No disponible'}"),
-              const SizedBox(height: 20),
-            ],
-            if (tipoActividadId == 6) ...[ 
-              const Text(
-                "Detalles de Cosecha:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text("Rendimiento: ${rendimiento ?? 'No disponible'} kg/ha"),
-              Text("Humedad: ${humedad ?? 'No disponible'}%"),
-              const SizedBox(height: 20),
-            ],
-            if (puedeEditarEliminar)
+              const SizedBox(height: 10),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _navigateToEditActivity,
-                    icon: const Icon(Icons.edit),
-                    label: const Text("Editar"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _showDeleteConfirmationDialog,
-                    icon: const Icon(Icons.delete),
-                    label: const Text("Eliminar"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  ),
+                  const Icon(Icons.calendar_today, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(fecha, style: const TextStyle(fontSize: 16)),
                 ],
               ),
-          ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text("Estado: $estado", style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.repeat, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(ciclo, style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.map, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text("Lote: $lote", style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.person, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text("Responsable: $responsable", style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "Descripción:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                descripcion,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              if ([1, 2, 3, 5].contains(tipoActividadId)) ...[ 
+                const Text(
+                  "Insumos:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                insumos.isNotEmpty
+                    ? Column(
+                        children: insumos.toSet().toList().map((insumo) {
+                          return ListTile(
+                            leading: const Icon(Icons.inventory, color: Colors.blue),
+                            title: Text(insumo['ins_desc']),
+                            subtitle: Text(
+                              "Cantidad: ${insumo['ins_cant']} L",
+                            ),
+                          );
+                        }).toList(),
+                      )
+                    : const Text("No hay insumos registrados."),
+                const SizedBox(height: 20),
+              ],
+              if (tipoActividadId == 3) ...[ 
+                const Text(
+                  "Densidad de Semilla:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text("Densidad de Semilla: ${densidadSemilla ?? 'No disponible'} kg/ha"),
+                const SizedBox(height: 20),
+              ],
+              if (tipoActividadId == 4) ...[ 
+                const Text(
+                  "Control de Germinación:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text("Cantidad de plantas por ha: ${cantidadPlantas ?? 'No disponible'}"),
+                Text("Vigor: ${vigor ?? 'No disponible'}"),
+                const SizedBox(height: 20),
+              ],
+              if (tipoActividadId == 6) ...[ 
+                const Text(
+                  "Detalles de Cosecha:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text("Rendimiento: ${rendimiento ?? 'No disponible'} kg/ha"),
+                Text("Humedad: ${humedad ?? 'No disponible'}%"),
+                const SizedBox(height: 20),
+              ],
+              if (puedeEditarEliminar)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _navigateToEditActivity,
+                      icon: const Icon(Icons.edit),
+                      label: const Text("Editar"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _showDeleteConfirmationDialog,
+                      icon: const Icon(Icons.delete),
+                      label: const Text("Eliminar"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  void _fetchUpdatedActivity() async {
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    final updatedActivity = await activityProvider.fetchActivityById(actividadActual['act_id']);
-
-    if (updatedActivity != null) {
-      setState(() {
-        actividadActual = updatedActivity;
-      });
-    }
   }
 
   //Metodo para mostrar el dialogo de confirmación de eliminación

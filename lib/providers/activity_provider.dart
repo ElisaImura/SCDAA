@@ -34,8 +34,20 @@ class ActivityProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get actividades => _actividades;
   bool get isLoadingUsuarios => _isLoadingUsuarios;
 
+  bool _recientesLoading = true; // arranca en true
+  bool _tareasLoading = true;    // arranca en true
+
+  bool get recientesLoading => _recientesLoading;
+  bool get tareasLoading => _tareasLoading;
+
   ActivityProvider() {
     _initData();
+
+    // dispara los fetch en paralelo al crearse el provider
+    Future.microtask(() {
+      fetchActividadesRecientes();
+      fetchTareas();
+    });
   }
 
   // 🔹 Carga los datos iniciales dividiendo en funciones
@@ -156,63 +168,94 @@ class ActivityProvider extends ChangeNotifier {
 
   /// 🔹 Cargar las últimas 3 actividades registradas, ordenadas por la fecha de actividad
   Future<void> fetchActividadesRecientes() async {
+    _recientesLoading = true;
+    notifyListeners();
     try {
-      // Llamada al ApiService para obtener todas las actividades
-      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+      final actividades = await _apiService.fetchActividades();
 
-      // Obtener la fecha actual
-      DateTime fechaHoy = DateTime.now();
+      // Normalizar a LOCAL y comparar por día (no por hora)
+      DateTime day(DateTime d) => DateTime(d.year, d.month, d.day);
+      final now = DateTime.now().toLocal();
+      final today = day(now);
 
-      // Filtrar actividades cuya fecha sea posterior al día de hoy
-      actividades = actividades.where((actividad) {
-        DateTime fechaActividad = DateTime.parse(actividad['act_fecha']);
-        return fechaActividad.isBefore(fechaHoy);  // Solo actividades con fecha anterior a hoy
-      }).toList();
+      // Mapear con campos auxiliares seguros
+      final parsed = actividades.map((a) {
+        final actDateLocal = DateTime.parse(a['act_fecha']).toLocal();
+        final actDay = day(actDateLocal);
 
-      // Si hay duplicados en la fecha, ordenar por fecha de creación (si está disponible)
-      actividades.sort((a, b) {
-        DateTime fechaA = DateTime.parse(a['act_fecha']);
-        DateTime fechaB = DateTime.parse(b['act_fecha']);
-
-        // Si las fechas de actividad son iguales, verificamos por la fecha de creación
-        if (fechaA.isAtSameMomentAs(fechaB)) {
-          DateTime fechaCreacionA = DateTime.parse(a['created_at']);
-          DateTime fechaCreacionB = DateTime.parse(b['created_at']);
-          return fechaCreacionB.compareTo(fechaCreacionA);
+        DateTime createdAtSafe;
+        final rawCreated = a['created_at'];
+        if (rawCreated == null || (rawCreated is String && rawCreated.trim().isEmpty)) {
+          // si no viene, usa epoch para que quede al final
+          createdAtSafe = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true).toLocal();
+        } else {
+          createdAtSafe = DateTime.parse(rawCreated).toLocal();
         }
 
-        return fechaB.compareTo(fechaA);
+        return {
+          ...a,
+          '_actDay': actDay,
+          '_createdAt': createdAtSafe,
+        };
+      }).toList();
+
+      // Solo pasadas o de hoy: !(fechaActividad > hoy)
+      parsed.removeWhere((a) => (a['_actDay'] as DateTime).isAfter(today));
+
+      // Orden: fechaActividad desc, y si empatan, createdAt desc
+      parsed.sort((a, b) {
+        final da = a['_actDay'] as DateTime;
+        final db = b['_actDay'] as DateTime;
+        final cmp = db.compareTo(da);
+        if (cmp != 0) return cmp;
+        final ca = a['_createdAt'] as DateTime;
+        final cb = b['_createdAt'] as DateTime;
+        return cb.compareTo(ca);
       });
 
-      _actividadesRecientes = actividades.isEmpty ? [] : actividades.take(3).toList();
+      // Toma las 3 más recientes
+      _actividadesRecientes = parsed.take(3).map((a) {
+        final copy = Map<String, dynamic>.from(a);
+        copy.remove('_actDay');
+        copy.remove('_createdAt');
+        return copy;
+      }).toList();
 
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print("❌ Error al obtener actividades recientes: $e");
+    } finally {
+      _recientesLoading = false;
+      notifyListeners();
     }
   }
 
   /// 🔹 Cargar las próximas tareas (actividades con fecha futura)
   Future<void> fetchTareas() async {
+    _tareasLoading = true;
+    notifyListeners();
     try {
-      // Llamada al ApiService para obtener todas las actividades
-      List<Map<String, dynamic>> actividades = await _apiService.fetchActividades();
+      final actividades = await _apiService.fetchActividades();
+      DateTime day(DateTime d) => DateTime(d.year, d.month, d.day);
+      final today = day(DateTime.now().toLocal());
 
-      // Obtener la fecha actual
-      DateTime now = DateTime.now();
-
-      // Filtra actividades cuya fecha de inicio es posterior a la fecha de hoy
-      _tareas = actividades.where((actividad) {
-        DateTime fechaInicio = DateTime.parse(actividad['act_fecha']);
-        return fechaInicio.isAfter(now); // Solo actividades con fecha posterior a hoy
+      _tareas = actividades.where((a) {
+        final d = day(DateTime.parse(a['act_fecha']).toLocal());
+        return d.isAfter(today); // estrictamente futuras
       }).toList();
 
-      // Ordenar las tareas por fecha de forma ascendente (más cercanas primero)
-      _tareas.sort((a, b) => DateTime.parse(a['act_fecha']).compareTo(DateTime.parse(b['act_fecha'])));
+      _tareas.sort((a, b) {
+        final da = DateTime.parse(a['act_fecha']).toLocal();
+        final db = DateTime.parse(b['act_fecha']).toLocal();
+        return da.compareTo(db);
+      });
 
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print("❌ Error al obtener tareas: $e");
+    } finally {
+      _tareasLoading = false;
+      notifyListeners();
     }
   }
 
@@ -254,8 +297,12 @@ class ActivityProvider extends ChangeNotifier {
       final success = await ApiService().updateActivity(activityData);
 
       if (success) {
-        // Recargar la actividad actualizada
-        await fetchActivityById(activityData["act_id"]);
+        // Recargar la actividad actualizada y refrescar listas
+        await Future.wait([
+          fetchActivityById(activityData["act_id"]),
+          fetchActividadesRecientes(),
+          fetchTareas(),
+        ]);
         return true;
       }
       return false;

@@ -14,28 +14,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool mostrarTodasLasTareas = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
-    cycleProvider.fetchCiclosActivos();
-    activityProvider.fetchActividadesRecientes();
-    activityProvider.fetchTareas();
-  }
-
-  void _loadData() async {
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
-    await cycleProvider.fetchCiclosActivos();
-    await activityProvider.fetchActividadesRecientes();
-    await activityProvider.fetchTareas();
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   String _getEstadoActividad(int estado) {
     switch (estado) {
       case 1:
@@ -64,22 +42,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activityProvider = Provider.of<ActivityProvider>(context);
-    final cycleProvider = Provider.of<CycleProvider>(context);
-    String fechaHoy = DateFormat('EEEE, d MMMM y', 'es').format(DateTime.now());
+    final activityProvider = context.watch<ActivityProvider>();
+    final cycleProvider = context.watch<CycleProvider>();
+
+    final cargandoRecientes = activityProvider.recientesLoading;
+    final cargandoTareas = activityProvider.tareasLoading;
+    final mostrandoSpinner = cargandoRecientes || cargandoTareas;
+
+    final ciclosLoading = cycleProvider.loadingActivos; // 👈 flag de carga
+
+    String fechaHoy = DateFormat('EEEE, d MMMM y', 'es').format(DateTime.now().toLocal());
 
     // Obtener las actividades recientes desde el provider
     List<Widget> actividadesRecientes = activityProvider.actividadesRecientes
         .map((actividad) {
-          String tipoActividad = actividad['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
-          String loteNombre = actividad['ciclo']['lote'] != null
-              ? actividad['ciclo']['lote']['lot_nombre']
-              : "Desconocido";
+          String tipoActividad = actividad['tipo_actividad']?['tpAct_nombre'] ?? "Sin nombre";
+          String loteNombre = actividad['ciclo']?['lote']?['lot_nombre'] ?? "Desconocido";
           String fecha = actividad['act_fecha'] ?? "Fecha desconocida";
-          String usuarioAsignado = actividad['ciclo']['act_ciclos']?.firstWhere(
-            (actCiclo) => actCiclo['uss_nombre'] != null,
+          String usuarioAsignado = (actividad['ciclo']?['act_ciclos'] as List?)?.firstWhere(
+            (x) => x?['uss_nombre'] != null,
             orElse: () => {'uss_nombre': "Usuario desconocido"},
-          )['uss_nombre'];
+          )['uss_nombre'] ?? "Usuario desconocido";
           int estadoInt = actividad['act_estado'] ?? 0;
           String estado = _getEstadoActividad(estadoInt);
           Color colorEstado = _getColorForEstado(estadoInt);
@@ -94,13 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
     // Obtener las próximas tareas desde el provider
     List<Widget> proximasTareas = activityProvider.tareas
         .map((tarea) {
-          String tipoActividad = tarea['tipo_actividad']['tpAct_nombre'] ?? "Sin nombre";
-          String loteNombre = tarea['ciclo']['lote']['lot_nombre'] ?? "Lote desconocido";
+          String tipoActividad = tarea['tipo_actividad']?['tpAct_nombre'] ?? "Sin nombre";
+          String loteNombre = tarea['ciclo']?['lote']?['lot_nombre'] ?? "Lote desconocido";
           String fecha = tarea['act_fecha'] ?? "Fecha desconocida";
-          String usuarioAsignado = tarea['ciclo']['act_ciclos']?.firstWhere(
-            (actCiclo) => actCiclo['uss_nombre'] != null,
+          String usuarioAsignado = (tarea['ciclo']?['act_ciclos'] as List?)?.firstWhere(
+            (x) => x?['uss_nombre'] != null,
             orElse: () => {'uss_nombre': "Usuario desconocido"},
-          )['uss_nombre'];
+          )['uss_nombre'] ?? "Usuario desconocido";
           int estadoInt = tarea['act_estado'] ?? 0;
           String estado = _getEstadoActividad(estadoInt);
           Color colorEstado = _getColorForEstado(estadoInt);
@@ -120,28 +103,44 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCiclosActivos(cycleProvider.ciclosActivos, fechaHoy),
+                _buildCiclosActivos(cycleProvider.ciclosActivos, fechaHoy, ciclosLoading), // 👈 pasa el flag
                 const SizedBox(height: 20),
-                _buildSeccion("Actividades Recientes", actividadesRecientes.isEmpty
-                    ? [const SizedBox(height: 10), Text("No hay actividades para mostrar.", style: TextStyle(fontSize: 16, color: Colors.grey))]
-                    : actividadesRecientes),
+                _buildSeccion(
+                  "Actividades Recientes",
+                  mostrandoSpinner
+                    ? [const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      )]
+                    : (activityProvider.actividadesRecientes.isEmpty
+                        ? [const SizedBox(height: 10),
+                           const Text("No hay actividades para mostrar.",
+                             style: TextStyle(fontSize: 16, color: Colors.grey))]
+                        : actividadesRecientes),
+                ),
                 const SizedBox(height: 20),
-                _buildSeccion("Próximas Tareas", proximasTareas.isEmpty
-                    ? [const SizedBox(height: 10), Text("No hay tareas para mostrar.", style: TextStyle(fontSize: 16, color: Colors.grey))]
-                    : [
-                        ...proximasTareas.take(mostrarTodasLasTareas ? proximasTareas.length : 3),
-                        if (proximasTareas.length > 3)
-                          TextButton(
-                            onPressed: () {
-                              if (mounted) {
-                                setState(() {
+                _buildSeccion(
+                  "Próximas Tareas",
+                  mostrandoSpinner
+                    ? [const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      )]
+                    : (proximasTareas.isEmpty
+                        ? [const SizedBox(height: 10),
+                           const Text("No hay tareas para mostrar.",
+                             style: TextStyle(fontSize: 16, color: Colors.grey))]
+                        : [
+                            ...proximasTareas.take(mostrarTodasLasTareas ? proximasTareas.length : 3),
+                            if (proximasTareas.length > 3)
+                              TextButton(
+                                onPressed: () => setState(() {
                                   mostrarTodasLasTareas = !mostrarTodasLasTareas;
-                                });
-                              }
-                            },
-                            child: Text(mostrarTodasLasTareas ? "Mostrar menos" : "Mostrar más"),
-                          ),
-                      ]),
+                                }),
+                                child: Text(mostrarTodasLasTareas ? "Mostrar menos" : "Mostrar más"),
+                              ),
+                          ]),
+                ),
               ],
             ),
           ),
@@ -188,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildCiclosActivos(List<dynamic> ciclos, String fecha) {
+  Widget _buildCiclosActivos(List<dynamic> ciclos, String fecha, bool loading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -203,15 +202,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(
           height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: ciclos.isEmpty
-                ? [Text("No hay ciclos activos disponibles.")]
-                : ciclos.map((ciclo) => Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: Chip(label: Text(ciclo['ci_nombre'] ?? "Ciclo desconocido")),
-            )).toList(),
-          ),
+          child: loading
+              ? const Center(child: CircularProgressIndicator()) // 👈 spinner mientras carga
+              : (ciclos.isEmpty
+                  ? const Center(child: Text("No hay ciclos activos disponibles."))
+                  : ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: ciclos.map((ciclo) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Chip(label: Text(ciclo['ci_nombre'] ?? "Ciclo desconocido")),
+                      )).toList(),
+                    )),
         ),
       ],
     );

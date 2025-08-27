@@ -29,7 +29,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final TextEditingController _unidadController = TextEditingController();
 
 
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now().toLocal();
   String? _selectedCiclo;
   String? _selectedTipoActividad;
   int? _ussId;
@@ -41,13 +41,20 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-      final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
-      cycleProvider.fetchCiclosActivos();
-      activityProvider.fetchUsuarios();
-    });
-    _ussId = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+        final cycleProvider = Provider.of<CycleProvider>(context, listen: false);
+        cycleProvider.fetchCiclosActivos();
+        activityProvider.fetchUsuarios();
+        // Cargar insumos automáticamente
+        final prefs = await SharedPreferences.getInstance();
+        final String? token = prefs.getString("auth_token");
+        if (token != null) {
+          await activityProvider.fetchInsumos(token);
+          if (mounted) setState(() {});
+        }
+      });
+      _ussId = null;
   }
 
   // Helper para refrescar la disponibilidad de clima según lote y fecha
@@ -78,7 +85,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   }
 
   bool _isFutureDate() {
-    return _selectedDate.isAfter(DateTime.now());
+  return _selectedDate.isAfter(DateTime.now().toLocal());
   }
 
   Widget _buildDatePicker() {
@@ -89,8 +96,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         DateTime? pickedDate = await showDatePicker(
           context: context,
           initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
+          firstDate: DateTime(2020).toLocal(),
+          lastDate: DateTime(2030).toLocal(),
         );
         if (pickedDate != null) {
           setState(() {
@@ -783,7 +790,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
 
             if (success) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Actividad guardada con éxito")));
-              context.go('/home');
+              Navigator.pop(context, true);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al guardar actividad")));
             }

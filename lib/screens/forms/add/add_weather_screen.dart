@@ -1,17 +1,16 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../screens/forms/add/add_lote_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/weather_provider.dart';
 import '../../../providers/lotes_provider.dart'; // Asegúrate de importar el provider correcto
 import '../../../providers/users_provider.dart';
+import '../../../providers/calendar_provider.dart';
 
 class AddWeatherScreen extends StatefulWidget {
-  final bool isFromFooter;
-  const AddWeatherScreen({super.key, this.isFromFooter = false});
+  const AddWeatherScreen({super.key});
 
   @override
   _AddWeatherScreenState createState() => _AddWeatherScreenState();
@@ -25,7 +24,7 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
   final TextEditingController _lluviaController = TextEditingController();
 
   
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime.now().toLocal();
   int? _selectedLoteId;
   bool _isFutureDate = false; // Nueva variable para controlar si la fecha es futura
 
@@ -86,13 +85,13 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
         DateTime? pickedDate = await showDatePicker(
           context: context,
           initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
+          firstDate: DateTime(2020).toLocal(),
+          lastDate: DateTime(2030).toLocal(),
         );
         if (pickedDate != null) {
           setState(() {
             _selectedDate = pickedDate;
-            _isFutureDate = pickedDate.isAfter(DateTime.now());
+            _isFutureDate = pickedDate.isAfter(DateTime.now().toLocal());
           });
 
           if (_selectedLoteId != null) {
@@ -242,11 +241,14 @@ class _AddWeatherScreenState extends State<AddWeatherScreen> {
                   bool success = await weatherProvider.addWeatherData(weatherData);
 
                   if (success) {
+                    // 🔁 Refresca el provider que usa el calendario
+                    await context.read<CalendarProvider>().fetchData();
+
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Datos del clima guardados con éxito")),
                     );
-
-                    widget.isFromFooter ? context.go('/home') : Navigator.pop(context);
+                    Navigator.pop(context, true);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Error al guardar los datos del clima")),

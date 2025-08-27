@@ -11,9 +11,22 @@ class CycleProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _ciclosInactivos = [];
   Map<String, dynamic>? ciclo;
 
+  bool _loadingActivos = true; // Flag de carga para ciclos activos
+  bool _loadingInactivos = false;
+
   List<Map<String, dynamic>> get ciclos => _ciclos;
   List<Map<String, dynamic>> get ciclosActivos => _ciclosActivos;
   List<Map<String, dynamic>> get ciclosInactivos => _ciclosInactivos;
+  bool get loadingActivos => _loadingActivos;
+  bool get loadingInactivos => _loadingInactivos;
+
+  CycleProvider() {
+    // Carga inicial al crear el provider
+    Future.microtask(() {
+      fetchCiclosActivos();
+      // fetchCiclosInactivos(); // Si también quieres precargar inactivos
+    });
+  }
 
   // 🔹 Cargar un ciclo específico
   Future<void> fetchCicloEspecifico(int id) async {
@@ -27,21 +40,33 @@ class CycleProvider extends ChangeNotifier {
 
   // 🔹 Cargar los ciclos activos
   Future<void> fetchCiclosActivos() async {
+    _loadingActivos = true;
+    notifyListeners();
     try {
-      _ciclosActivos = await _apiService.fetchCiclosActivos(); // Llamada al ApiService para obtener los ciclos activos
-      notifyListeners();
+      final res = await _apiService.fetchCiclosActivos();
+      _ciclosActivos = res;
     } catch (e) {
-      if (kDebugMode) print("❌ Error al obtener ciclos activos: $e");
+      if (kDebugMode) print("❌ Error ciclos activos: $e");
+      _ciclosActivos = [];
+    } finally {
+      _loadingActivos = false;
+      notifyListeners();
     }
   }
 
   // 🔹 Cargar los ciclos inactivos
   Future<void> fetchCiclosInactivos() async {
+    _loadingInactivos = true;
+    notifyListeners();
     try {
-      _ciclosInactivos = await _apiService.fetchCiclosInactivos(); // Llamada al ApiService para obtener los ciclos inactivos
-      notifyListeners();
+      final res = await _apiService.fetchCiclosInactivos();
+      _ciclosInactivos = res;
     } catch (e) {
-      if (kDebugMode) print("❌ Error al obtener ciclos inactivos: $e");
+      if (kDebugMode) print("❌ Error ciclos inactivos: $e");
+      _ciclosInactivos = [];
+    } finally {
+      _loadingInactivos = false;
+      notifyListeners();
     }
   }
 
@@ -53,6 +78,7 @@ class CycleProvider extends ChangeNotifier {
   /// 🔹 Agregar un nuevo ciclo
   Future<bool> addCiclo(Map<String, dynamic> cicloData) async {
     bool success = await _apiService.addCiclo(cicloData);
+    if (success) await fetchCiclosActivos(); // Refresca la lista si se agregó
     notifyListeners();
     return success;
   }
@@ -60,7 +86,8 @@ class CycleProvider extends ChangeNotifier {
   // Método para editar un ciclo
   Future<bool> editCiclo(int cicloId, Map<String, dynamic> cicloData) async {
     try {
-      bool success = await _apiService.editCiclo(cicloId, cicloData); // Llama al método de la API para editar el ciclo
+      bool success = await _apiService.editCiclo(cicloId, cicloData);
+      if (success) await fetchCiclosActivos(); // Refresca si se editó
       return success;
     } catch (e) {
       print("Error al editar el ciclo: $e");
@@ -71,12 +98,12 @@ class CycleProvider extends ChangeNotifier {
   // Método para eliminar un ciclo
   Future<bool> deleteCiclo(int cicloId) async {
     try {
-      bool success = await _apiService.deleteCiclo(cicloId); // Llama al método de la API para eliminar el ciclo
+      bool success = await _apiService.deleteCiclo(cicloId);
+      if (success) await fetchCiclosActivos(); // Refresca si se eliminó
       return success;
     } catch (e) {
       print("Error al eliminar el ciclo: $e");
       return false;
     }
   }
-
 }

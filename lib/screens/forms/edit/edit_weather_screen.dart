@@ -201,41 +201,43 @@ class _EditWeatherScreenState extends State<EditWeatherScreen> {
   }
 
   Widget _buildSaveButton(WeatherProvider weatherProvider) {
-    final isDuplicate = (_selectedDate != _originalDate || _selectedLoteId != _originalLoteId) && weatherProvider.isWeatherAvailable;
+    final isDuplicate = (_selectedDate != _originalDate || _selectedLoteId != _originalLoteId)
+        && weatherProvider.isWeatherAvailable;
 
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: isDuplicate
-            ? null
-            : () async {
-                if (_formKey.currentState!.validate()) {
-                  final nuevaFecha = DateFormat('yyyy-MM-dd').format(_selectedDate);
+        onPressed: isDuplicate ? null : () async {
+          if (!_formKey.currentState!.validate()) return;
 
-                  Map<String, dynamic> updatedData = {
-                    "cl_fecha": nuevaFecha,
-                    "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
-                    "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
-                    "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
-                    "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
-                    "lot_id": _selectedLoteId!,
-                  };
+          final nuevaFecha = DateFormat('yyyy-MM-dd').format(_selectedDate);
+          final updatedData = {
+            "cl_fecha": nuevaFecha,
+            "cl_viento": double.tryParse(_vientoController.text) ?? 0.0,
+            "cl_temp": double.tryParse(_temperaturaController.text) ?? 0.0,
+            "cl_hume": double.tryParse(_humedadController.text) ?? 0.0,
+            "cl_lluvia": double.tryParse(_lluviaController.text) ?? 0.0,
+            "lot_id": _selectedLoteId!,
+          };
 
-                  bool success = await weatherProvider.editWeather(widget.weather['cl_id'], updatedData);
+          final success = await weatherProvider.editWeather(widget.weather['cl_id'], updatedData);
+          if (!mounted) return;
 
-                  if (success) {
-                    await weatherProvider.fetchWeatherData();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Datos del clima actualizados con éxito")),
-                    );
-                    Navigator.pop(context, true);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Error al actualizar los datos del clima")),
-                    );
-                  }
-                }
-              },
+          if (success) {
+            // ✅ NO toques providers ni Scaffold aquí
+            Navigator.of(context).pop({
+              'changed': true,
+              'cl_fecha': nuevaFecha,
+              'lot_id': _selectedLoteId,
+              'message': 'Datos del clima actualizados con éxito',
+            });
+          } else {
+            // Error sí puede mostrar snackbar (sigue en esta pantalla)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Error al actualizar los datos del clima")),
+            );
+          }
+        },
         child: isDuplicate
             ? const Text("Clima ya registrado para esta fecha y lote")
             : const Text("Guardar Datos"),

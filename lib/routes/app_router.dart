@@ -57,9 +57,7 @@ class AppRouter {
         GoRoute(
           path: '/add-weather',
           builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>?;
-            final bool isFromFooter = extra != null && extra['isFromFooter'] == true;
-            return AddWeatherScreen(isFromFooter: isFromFooter);
+            return AddWeatherScreen();
           },
         ),
         GoRoute(path: '/add-cycle', pageBuilder: (_, __) => NoTransitionPage(child: const AddCycleScreen())),
